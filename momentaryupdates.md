@@ -19,4 +19,12 @@ Under it (inventory 13.10.2026):
   DELETE, the activity LEDs, the incoming monitor, the same ~/.config/midi-to-keystroke.json. No server: :8853 and the
   MANTRA_CONTROLS window are replaced by the module's section. Verified in a dry run (listens, presses nothing).
   **Status:** built, OFF until Marko switches it over (the Lua engine still runs).
+- **MIDI to MK Control** (13.10.2026): ported to Swift as the Mackie module (app/Mackie.swift, MackieMCU.swift,
+  MackieRules.swift, MackieIO.swift, MackieBlob.swift, MackieEngine.swift; MK-prefixed). The 121 commands and the rule book
+  pass all 235 checks of MANTRA_MACKIE's own Lua tests; his ~/.config/midi-to-mk.json reads back unchanged. CoreMIDI on
+  every source, out to IAC Driver / Bus 1, the paced 20 ms queue, spins, PLAY / STOP from the insert point (Live's Log.txt
+  + AbletonOSC questions), HOLD rows, the Mac's volume keys and blob, the E16 rings and colours, the command blob, DETECT /
+  LEARN / TRY, UNDO / REDO / DELETE, the activity LEDs, the incoming monitor. No server: :8855 and the MANTRA_CONTROLS
+  window are replaced by the module's section. Verified: rendered from his file, MIDI opened read-only, nothing sent.
+  **Status:** built, OFF until Marko switches it over (the Lua engine still runs).
 
