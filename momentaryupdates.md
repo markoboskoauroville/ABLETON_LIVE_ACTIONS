@@ -13,6 +13,13 @@ Under it (inventory 13.10.2026):
 - Later: ABLETON_COMMAND_GUIDE, ABLETON_TEACHER (out of the star since 26.9.2026).
 
 **Status:** saved; the shell first, then the three engines ported to Swift modules.
+**Status A1 (13.10.2026):** ported to Swift (app/A1*.swift, helpers/a1_transients.py, commit 21f653b): every key override
+with its tick, Space continues, the insert point beside the set, open the last set, markers / loop / transients / tracks,
+the time blob and the E16 blob, Live's whole menu for ADD A MAPPING, the same ~/.config/ableton-assistant-a1.json. The
+AbletonOSC wire is native (tested against a stand-in AbletonOSC: tempo, cue points, the 32-bit rounding, timeouts). The
+window section is drawn and checked. Not yet tried with Live and his hands. The module is OFF in live-actions.json until
+Marko turns the Lua A1 off in the star and the module on; it needs Accessibility for "Ableton Live Actions (Mantra)".
+
 - **MIDI to Key Stroke** (13.10.2026): ported to Swift as the MidiKeys module (app/MidiKeys.swift, MidiKeysEngine.swift,
   MidiKeysRules.swift; helpers/midikeys_e16colour.py; tests/midikeys_rules_test.swift, 49 checks pass). CoreMIDI on every
   source, DETECT / LEARN / key capture, KEY and VOLUME rows (the Mac's own blob), the E16 rings and colours, UNDO / REDO /
