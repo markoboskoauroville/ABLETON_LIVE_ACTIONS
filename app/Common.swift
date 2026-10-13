@@ -10,8 +10,8 @@ let BUNDLE = "com.ableton.live"
 let PYTHON = NSHomeDirectory() + "/.pyenv/versions/3.10.14/bin/python3"
 // the helpers (Python: audio analysis, AbletonOSC ears) ship inside the app (Resources/helpers)
 let SCRIPTS: String = {
-    let inApp = (Bundle.main.resourcePath ?? "") + "/scripts"
-    return FileManager.default.fileExists(atPath: inApp) ? inApp : NSHomeDirectory() + "/Developer/ABLETON_LIVE_ACTIONS/scripts"
+    let inApp = (Bundle.main.resourcePath ?? "") + "/helpers"
+    return FileManager.default.fileExists(atPath: inApp) ? inApp : NSHomeDirectory() + "/Developer/ABLETON_LIVE_ACTIONS/helpers"
 }()
 
 
