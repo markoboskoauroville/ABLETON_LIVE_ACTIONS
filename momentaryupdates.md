@@ -35,3 +35,18 @@ Marko turns the Lua A1 off in the star and the module on; it needs Accessibility
   window are replaced by the module's section. Verified: rendered from his file, MIDI opened read-only, nothing sent.
   **Status:** built, OFF until Marko switches it over (the Lua engine still runs).
 
+
+## 19.10.2026: ON / OFF at the top of the window
+
+Marko, 19.10.2026: *"When I select any of the apps, the user interface opens up. In the top of every user interface,
+there will now be an on/off switch ... If I say on, I close it's on ... When I just switch the check mark, and that's
+how I activate it. This is gone. Let's work like this. This is the workflow now."*
+
+And, the same day: *"please unify the position of the close button on every application. It's far upper right corner.
+There is X to close the dialog in every dialog, same."*
+
+For Ableton Live Actions (Mantra): the first row of the window is ABLETON LIVE ACTIONS ON / OFF, with ✕ at the far
+right of the same row. OFF stops every module and quits; ✕ closes the window only and the app stays on; the star's open
+brings the window back. (MANTRA_MANIFEST modules/swift-apps.md, "ON / OFF at the top of every window".)
+
+Status: requested.
