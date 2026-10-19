@@ -53,7 +53,11 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
     }
     @objc func showSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.first { $0.title.contains("Ableton Live Actions") }?.makeKeyAndOrderFront(nil)
+        if let w = NSApp.windows.first(where: { $0.title.contains("Ableton Live Actions") && ($0.isVisible || $0.isMiniaturized) }) {
+            w.deminiaturize(nil); w.makeKeyAndOrderFront(nil)
+        } else {
+            NSWorkspace.shared.open(Bundle.main.bundleURL)   // the window was closed: a reopen makes it again
+        }
     }
 }
 
@@ -78,6 +82,20 @@ struct ModuleSection: View {
 struct SettingsView: View {
     @ObservedObject var u: Umbrella
     var body: some View {
+        VStack(spacing: 0) {
+        // the first row: the app ON / OFF, ✕ at the far right (MANTRA_MANIFEST swift-apps.md, 19.10.2026). Marko: "In
+        // the top of every user interface, there will now be an on/off switch". Running is ON; OFF stops every module
+        // (applicationWillTerminate) and quits. ✕ closes the window only.
+        HStack(spacing: 0) {
+            Text("ABLETON LIVE ACTIONS").font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(.white).padding(.trailing, 6)
+            Word(text: "ON", on: true) {}
+            Word(text: "OFF", on: false) { NSApp.terminate(nil) }
+            Spacer()
+            Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
+            CloseX()
+        }
+        .padding(.leading, 24).padding(.trailing, 10).padding(.vertical, 8).frame(width: 640)
+        Divider().frame(width: 640)
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
@@ -93,6 +111,8 @@ struct SettingsView: View {
             }
             .padding(24)
         }
+        .frame(width: 640)
+        }
         .frame(width: 640, height: 780).background(INK).preferredColorScheme(.dark)
     }
 }
@@ -103,6 +123,11 @@ let UMBRELLA = Umbrella()
 final class Delegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ n: Notification) { _ = UMBRELLA }
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { false }
+    // the star's open of a running app is a reopen: the window comes back (made again by the WindowGroup if closed)
+    func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows, let w = s.windows.first(where: { $0.isMiniaturized }) { w.deminiaturize(nil); return false }
+        return true
+    }
     func applicationWillTerminate(_ n: Notification) { for m in MODULES { m.setOn(false) } }
 }
 

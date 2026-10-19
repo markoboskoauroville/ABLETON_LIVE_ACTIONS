@@ -49,4 +49,10 @@ For Ableton Live Actions (Mantra): the first row of the window is ABLETON LIVE A
 right of the same row. OFF stops every module and quits; ✕ closes the window only and the app stays on; the star's open
 brings the window back. (MANTRA_MANIFEST modules/swift-apps.md, "ON / OFF at the top of every window".)
 
-Status: requested.
+Status, 19.10.2026: built in v3. First row: ABLETON LIVE ACTIONS, ON (green, lit while it runs), OFF (`NSApp.terminate`;
+applicationWillTerminate switches every module off), the version, and ✕ (SF Symbol xmark, grey, 28×28 hit area) at the
+far right, which closes the window only. The reopen brings the window back (a new one from the WindowGroup if it was
+closed); Settings… in the LIVE menu does the same. The LED colour palettes (MIDI TO MK CONTROL, MIDI TO KEY STROKE)
+and the `--midikeys-dry` window carry the same ✕. Checked: built, opened once, screenshot shows the row with v3 and ✕,
+quit again (it was not running). Seen in passing, not changed: the module sections below are wider than the 640-pt
+window and are cut at both sides (the MIDI TO KEY STROKE table is drawn for 1040 pt). Marko to try OFF and ✕.

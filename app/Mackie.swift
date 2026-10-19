@@ -249,6 +249,8 @@ struct MKRowView: View {
                 .buttonStyle(.plain).disabled(ledAbout.knob.isEmpty)
                 .help(ledAbout.knob.isEmpty ? ledAbout.says : "the colour of " + ledAbout.knob + ": click to change it in the scene")
                 .popover(isPresented: $palette) {
+                  VStack(alignment: .trailing, spacing: 0) {
+                    CloseX { palette = false }
                     LazyVGrid(columns: Array(repeating: GridItem(.fixed(20), spacing: 3), count: 10), spacing: 3) {
                         ForEach(0..<100, id: \.self) { i in
                             Button { palette = false; e.colour(r.id, i) } label: {
@@ -257,6 +259,7 @@ struct MKRowView: View {
                             }.buttonStyle(.plain).help("colour \(i)")
                         }
                     }.padding(8)
+                }
                 }
                 Spacer()
                 Word(text: learning ? (r.from == "note" ? "PRESS A NOTE\u{2026}" : "TURN A KNOB\u{2026}") : "LEARN", on: learning) { e.learn(r.id) }

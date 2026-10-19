@@ -4,7 +4,7 @@ import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 
-let VERSION = 2
+let VERSION = 3
 let RELEASES = "https://github.com/markoboskoauroville/ABLETON_LIVE_ACTIONS/releases/latest"
 let BUNDLE = "com.ableton.live"
 let PYTHON = NSHomeDirectory() + "/.pyenv/versions/3.10.14/bin/python3"
@@ -27,6 +27,26 @@ struct Word: View {
             .padding(.horizontal, 6).padding(.vertical, 4).contentShape(Rectangle()).onTapGesture(perform: action)
     }
 }
+// ✕, the window's close at its far upper-right corner (Marko, 19.10.2026: "please unify the position of the close
+// button on every application. It's far upper right corner. There is X to close the dialog in every dialog, same").
+// It closes its own window (or, given an action, its dialog); the app stays on.
+struct CloseX: View {
+    var action: (() -> Void)? = nil
+    @State private var window: NSWindow?
+    var body: some View {
+        Image(systemName: "xmark").font(.system(size: 14, weight: .bold)).foregroundColor(GREY)
+            .frame(width: 28, height: 28).contentShape(Rectangle())
+            .background(WindowReader { window = $0 })
+            .onTapGesture { if let a = action { a() } else { (window ?? NSApp.keyWindow)?.performClose(nil) } }
+            .help("close this window; the app stays on")
+    }
+}
+struct WindowReader: NSViewRepresentable {
+    let found: (NSWindow?) -> Void
+    func makeNSView(context: Context) -> NSView { let v = NSView(); DispatchQueue.main.async { found(v.window) }; return v }
+    func updateNSView(_ v: NSView, context: Context) {}
+}
+
 struct Label10: View {
     let text: String
     var body: some View { Text(text).font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundColor(GREY) }

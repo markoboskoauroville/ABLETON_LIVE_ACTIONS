@@ -25,7 +25,7 @@ final class MidiKeysModule: NSObject, LiveModule {
         engine.start()
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 760), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         w.title = "MIDI to Key Stroke (dry: listens, presses nothing)"
-        w.contentView = NSHostingView(rootView: ScrollView { KSSection(e: engine).padding(20) }.background(INK).preferredColorScheme(.dark))
+        w.contentView = NSHostingView(rootView: VStack(spacing: 0) { HStack { Spacer(); CloseX() }.padding(.trailing, 10).padding(.top, 6); ScrollView { KSSection(e: engine).padding(20) } }.background(INK).preferredColorScheme(.dark))
         w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
         dryWindow = w
     }
@@ -282,6 +282,8 @@ struct KSRowView: View {
                     }.buttonStyle(.plain).disabled(about.knob.isEmpty)
                      .help(about.knob.isEmpty ? about.says : "the colour of " + about.knob + ": click to change it in the scene")
                      .popover(isPresented: $palette) {
+                  VStack(alignment: .trailing, spacing: 0) {
+                    CloseX { palette = false }
                         LazyVGrid(columns: Array(repeating: GridItem(.fixed(22), spacing: 3), count: 10), spacing: 3) {
                             ForEach(0..<100, id: \.self) { i in
                                 Button { palette = false; e.colour(r.id, i) } label: {
@@ -290,6 +292,7 @@ struct KSRowView: View {
                                 }.buttonStyle(.plain).help("colour \(i)")
                             }
                         }.padding(10).background(KSInk.surface)
+                     }
                      }
                 }.frame(width: w[5])
                 KSPill(title: learning ? (typ == "note" ? "press a note\u{2026}" : "turn a knob\u{2026}") : "LEARN", look: learning ? .lit : .ghost, width: w[6]) { e.learn(r.id) }
