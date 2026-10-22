@@ -64,3 +64,7 @@ window and are cut at both sides (the MIDI TO KEY STROKE table is drawn for 1040
 > there is no project. You need to create it yourself
 
 **Status:** saved; Bach Prelude in C (BWV 846) as a .mid file and as a clip in Live's Untitled set, IK Multimedia Pianoverse on the track, clip looping.
+
+> everything you do always do in arrangement view. Never do in session view, the second view with the horizontal lines. Always switch to that one. And make my when my application starts switch to that view automatically. Please, I have application in the start menu starting and closing. So for starting Ableton Live, switching to the right view is mandatory
+
+**Status:** saved; the Prelude goes in the Arrangement (clip on the timeline, arrangement loop); the star's Ableton start switches Live to Arrangement View.
