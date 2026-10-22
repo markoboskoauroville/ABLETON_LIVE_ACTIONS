@@ -68,3 +68,5 @@ window and are cut at both sides (the MIDI TO KEY STROKE table is drawn for 1040
 > everything you do always do in arrangement view. Never do in session view, the second view with the horizontal lines. Always switch to that one. And make my when my application starts switch to that view automatically. Please, I have application in the start menu starting and closing. So for starting Ableton Live, switching to the right view is mandatory
 
 **Status:** saved; the Prelude goes in the Arrangement (clip on the timeline, arrangement loop); the star's Ableton start switches Live to Arrangement View.
+**Status (12:30):** done. The Bach Prelude became Pianoverse Demo Songs by Mantra (repo PIANOVERSE_DEMO_SONGS); the
+Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC additions are kept in abletonosc/.

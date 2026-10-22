@@ -1,0 +1,143 @@
+diff --git a/abletonosc/application.py b/abletonosc/application.py
+index 6c058f6..37beda4 100644
+--- a/abletonosc/application.py
++++ b/abletonosc/application.py
+@@ -18,3 +18,138 @@ class ApplicationHandler(AbletonOSCHandler):
+             return application.average_process_usage,
+         self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
+         self.osc_server.send("/live/application/get/average_process_usage")
++
++        #--------------------------------------------------------------------------------
++        # Load a plug-in by name onto a track (Mantra, 22.10.2026)
++        #   /live/application/browser/load_plugin <name> <track_index>
++        #--------------------------------------------------------------------------------
++        def find_loadable(item, name, depth=0):
++            if depth > 4:
++                return None
++            if item.is_loadable and name.lower() in item.name.lower():
++                return item
++            for child in item.children:
++                hit = find_loadable(child, name, depth + 1)
++                if hit is not None:
++                    return hit
++            return None
++
++        def load_plugin(params) -> Tuple:
++            name, track_index = str(params[0]), int(params[1])
++            application = Live.Application.get_application()
++            browser = application.browser
++            song = application.get_document()
++            song.view.selected_track = song.tracks[track_index]
++            for root in browser.plugins.children:
++                hit = find_loadable(root, name)
++                if hit is not None:
++                    browser.load_item(hit)
++                    return (hit.name,)
++            return ("not found",)
++        self.osc_server.add_handler("/live/application/browser/load_plugin", load_plugin)
++
++        #--------------------------------------------------------------------------------
++        # Arrangement View, always (Mantra, 22.10.2026)
++        #   /live/application/view/arranger
++        #   /live/arrangement/midi_clip <track> <start> <length> <name> [pitch start dur vel]...
++        #--------------------------------------------------------------------------------
++        def show_arranger(_) -> Tuple:
++            view = Live.Application.get_application().view
++            view.show_view("Arranger")
++            view.focus_view("Arranger")
++            return (view.is_view_visible("Arranger"),)
++        self.osc_server.add_handler("/live/application/view/arranger", show_arranger)
++
++        def arrangement_midi_clip(params) -> Tuple:
++            track_index, start, length, name = int(params[0]), float(params[1]), float(params[2]), str(params[3])
++            song = Live.Application.get_application().get_document()
++            track = song.tracks[track_index]
++            clip = track.create_midi_clip(start, length)
++            clip.name = name
++            rest = params[4:]
++            specs = [Live.Clip.MidiNoteSpecification(pitch=int(rest[i]), start_time=float(rest[i + 1]),
++                                                     duration=float(rest[i + 2]), velocity=float(rest[i + 3]))
++                     for i in range(0, len(rest) - 3, 4)]
++            clip.add_new_notes(tuple(specs))
++            return (len(specs),)
++        self.osc_server.add_handler("/live/arrangement/midi_clip", arrangement_midi_clip)
++
++        #   /live/arrangement/add_notes <track> <clip start> [pitch start dur vel]...   (more notes, UDP is small)
++        def arrangement_add_notes(params) -> Tuple:
++            track_index, start = int(params[0]), float(params[1])
++            song = Live.Application.get_application().get_document()
++            clip = next(c for c in song.tracks[track_index].arrangement_clips if abs(c.start_time - start) < 1e-6)
++            rest = params[2:]
++            specs = [Live.Clip.MidiNoteSpecification(pitch=int(rest[i]), start_time=float(rest[i + 1]),
++                                                     duration=float(rest[i + 2]), velocity=float(rest[i + 3]))
++                     for i in range(0, len(rest) - 3, 4)]
++            clip.add_new_notes(tuple(specs))
++            return (len(specs),)
++        self.osc_server.add_handler("/live/arrangement/add_notes", arrangement_add_notes)
++
++        #   /live/application/browser/load_instrument <name> <track_index>   (Live's own instruments: Operator, Drift…)
++        def load_instrument(params) -> Tuple:
++            name, track_index = str(params[0]), int(params[1])
++            application = Live.Application.get_application()
++            song = application.get_document()
++            song.view.selected_track = song.tracks[track_index]
++            for item in application.browser.instruments.children:
++                if item.is_loadable and item.name.lower() == name.lower():
++                    application.browser.load_item(item)
++                    return (item.name,)
++            return ("not found",)
++        self.osc_server.add_handler("/live/application/browser/load_instrument", load_instrument)
++
++        #   /live/application/browser/list_plugins <name>   every loadable plug-in matching, with its folder path
++        def list_plugins(params) -> Tuple:
++            name = str(params[0]).lower()
++            out = []
++            def walk(item, path, depth):
++                if depth > 5: return
++                if item.is_loadable and name in item.name.lower(): out.append(path + "/" + item.name + " | " + item.uri)
++                for c in item.children: walk(c, path + "/" + item.name, depth + 1)
++            for root in Live.Application.get_application().browser.plugins.children: walk(root, "", 0)
++            return tuple(out)
++        self.osc_server.add_handler("/live/application/browser/list_plugins", list_plugins)
++
++        #   /live/application/browser/load_uri <uri> <track_index>
++        def load_uri(params) -> Tuple:
++            uri, track_index = str(params[0]), int(params[1])
++            application = Live.Application.get_application()
++            song = application.get_document()
++            song.view.selected_track = song.tracks[track_index]
++            def walk(item, depth):
++                if item.uri == uri: return item
++                if depth > 5: return None
++                for c in item.children:
++                    hit = walk(c, depth + 1)
++                    if hit is not None: return hit
++                return None
++            for root in application.browser.plugins.children:
++                hit = walk(root, 0)
++                if hit is not None:
++                    application.browser.load_item(hit)
++                    return (hit.name,)
++            return ("not found",)
++        self.osc_server.add_handler("/live/application/browser/load_uri", load_uri)
++
++        #   /live/arrangement/clear <track>   deletes every clip of the track on the timeline
++        def arrangement_clear(params) -> Tuple:
++            track = Live.Application.get_application().get_document().tracks[int(params[0])]
++            clips = list(track.arrangement_clips)
++            for c in clips:
++                track.delete_clip(c)
++            return (len(clips),)
++        self.osc_server.add_handler("/live/arrangement/clear", arrangement_clear)
++
++        #   /live/arrangement/rainbow <track>   every clip on the timeline its own colour: the hue moves on each clip
++        #   (Live's palette is 14 hues × 5 shades), the shade every 14 clips
++        def arrangement_rainbow(params) -> Tuple:
++            track = Live.Application.get_application().get_document().tracks[int(params[0])]
++            offset = int(params[1]) if len(params) > 1 else 0      # another track: shifted, so no clip matches the one above
++            clips = sorted(track.arrangement_clips, key=lambda c: c.start_time)
++            for i, c in enumerate(clips):
++                j = i + offset
++                c.color_index = ((j // 14) % 5) * 14 + (j * 5) % 14
++            return (len(clips),)
++        self.osc_server.add_handler("/live/arrangement/rainbow", arrangement_rainbow)
