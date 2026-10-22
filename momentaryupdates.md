@@ -56,3 +56,11 @@ closed); Settings… in the LIVE menu does the same. The LED colour palettes (MI
 and the `--midikeys-dry` window carry the same ✕. Checked: built, opened once, screenshot shows the row with v3 and ✕,
 quit again (it was not running). Seen in passing, not changed: the module sections below are wider than the 640-pt
 window and are cut at both sides (the MIDI TO KEY STROKE table is drawn for 1040 pt). Marko to try OFF and ✕.
+
+## 22.10.2026: a classical piece in Live, played by Pianoverse, looped
+
+> please open Ableton Live application and write a MIDI song, any popular classical piece, as a MIDI file and play it with an iKey multimedia piano. Put it in the loop
+
+> there is no project. You need to create it yourself
+
+**Status:** saved; Bach Prelude in C (BWV 846) as a .mid file and as a clip in Live's Untitled set, IK Multimedia Pianoverse on the track, clip looping.
