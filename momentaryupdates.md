@@ -77,5 +77,5 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 (Said while routing the Santoshi Venue Mix in Live: AbletonOSC answers only to UDP 11001, this app's A1 wire holds it, so Claude's tools could send orders but never read Live's answers.)
 
-- The router inside this app: it keeps 11001 and opens 127.0.0.1:11002; any app sends its OSC to 11002, the router passes it to Live (11000) from the 11001 socket, and every answer that comes back is given to A1 and sent on to every app that spoke through the router in the last two minutes. **Status:** in progress
-- The tools that ask Live (SANTOSHI_CONCERT_MIX tools/osc.py first) talk through 11002 when the router is there. **Status:** in progress
+- The router inside this app: it keeps 11001 and opens 127.0.0.1:11002; any app sends its OSC to 11002, the router passes it to Live (11000) from the 11001 socket, and every answer that comes back is given to A1 and sent on to every app that spoke through the router in the last two minutes. **Status:** done, v4 built, installed, restarted (pid 1493 → 10501); lsof: 11001 and 127.0.0.1:11002 held by the app; tested from SANTOSHI_CONCERT_MIX tools/osc.py: tracks, markers, routing types and channels read back through 11002 while A1 kept its wire
+- The tools that ask Live (SANTOSHI_CONCERT_MIX tools/osc.py first) talk through 11002 when the router is there. **Status:** Santoshi done; ABLETON_TEACHER live.py, ABLETON_COMMAND_GUIDE act.py and the Mackie Log.txt reader still the old way

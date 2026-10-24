@@ -21,3 +21,9 @@ The colour palettes and the `--midikeys-dry` window have the same ✕.
 Each module is one Swift file family under `app/` implementing `LiveModule` (`app/Module.swift`); hot keys are armed
 only while Live is in front. Python helpers (audio analysis, AbletonOSC) live in `helpers/` and travel inside the app.
 Module on/off: `~/.config/live-actions.json`.
+
+**The OSC router (v4, 24.10.2026).** AbletonOSC answers only to UDP 11001, so only one app could ever hear Live. A1's
+wire holds 11001 and now also listens on **127.0.0.1:11002**: any other app sends its OSC there (not to 11000), the
+router passes it to Live from the 11001 socket, and every answer is given to A1 and copied to every app heard from in
+the last two minutes. The window's A1 line says how many apps it serves. The router runs while A1 is on. A client:
+bind any port, send to 11002, read the answers for your own addresses (SANTOSHI_CONCERT_MIX `tools/osc.py`).
