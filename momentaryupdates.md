@@ -70,3 +70,12 @@ window and are cut at both sides (the MIDI TO KEY STROKE table is drawn for 1040
 **Status:** saved; the Prelude goes in the Arrangement (clip on the timeline, arrangement loop); the star's Ableton start switches Live to Arrangement View.
 **Status (12:30):** done. The Bach Prelude became Pianoverse Demo Songs by Mantra (repo PIANOVERSE_DEMO_SONGS); the
 Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC additions are kept in abletonosc/.
+
+## 24.10.2026: an OSC router, so every app can hear Live
+
+> if our fifth app is occupying the OSC, that's the reason we need to solve this. You need to make an OSC router so both apps can use it. You can use it, and the app can use it. Please make this router
+
+(Said while routing the Santoshi Venue Mix in Live: AbletonOSC answers only to UDP 11001, this app's A1 wire holds it, so Claude's tools could send orders but never read Live's answers.)
+
+- The router inside this app: it keeps 11001 and opens 127.0.0.1:11002; any app sends its OSC to 11002, the router passes it to Live (11000) from the 11001 socket, and every answer that comes back is given to A1 and sent on to every app that spoke through the router in the last two minutes. **Status:** in progress
+- The tools that ask Live (SANTOSHI_CONCERT_MIX tools/osc.py first) talk through 11002 when the router is there. **Status:** in progress
