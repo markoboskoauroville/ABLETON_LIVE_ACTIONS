@@ -93,9 +93,12 @@ struct A1View: View {
                     }
                 }
             }
+            // two rows, so the keys fit the narrowest window (one row was wider than 640 and cut the page)
             HStack(spacing: 0) {
                 Word(text: "7 BACK", on: false) { e.jumpCue(back: true) }; Word(text: "8 SET", on: false) { e.locator() }; Word(text: "9 ON", on: false) { e.jumpCue(back: false) }
                 Spacer()
+            }
+            HStack(spacing: 0) {
                 Word(text: "I", on: false) { e.jumpToTransient("in") }; Word(text: "O", on: false) { e.jumpToTransient("out") }
                 Word(text: "L " + (e.liveLoop.on == true ? "ON" : "OFF"), on: e.liveLoop.on == true) { e.toggleLoop() }
                 Word(text: "IN HERE", on: false) { e.markLoop("in") }; Word(text: "OUT HERE", on: false) { e.markLoop("out") }

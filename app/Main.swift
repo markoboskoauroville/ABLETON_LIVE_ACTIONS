@@ -94,9 +94,15 @@ struct SettingsView: View {
             Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
             CloseX()
         }
-        .padding(.leading, 24).padding(.trailing, 10).padding(.vertical, 8).frame(width: 640)
-        Divider().frame(width: 640)
-        ScrollView {
+        .padding(.leading, 24).padding(.trailing, 10).padding(.vertical, 8)
+        Divider()
+        // the window is resizable and the page takes its width, so a long line wraps instead of being cut (Marko,
+        // 25.10.2026: "It's cutting the text. There is no margin between text and the window ... windows can be
+        // resizable"; the fixed 640 let one wide row push the whole page past both edges)
+        // the page is given exactly the window's width less its 24-point margins: a too-wide row inside a module can no
+        // longer widen the page and push it past both edges; the texts wrap inside
+        GeometryReader { g in
+        ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
                     Label10(text: "ABLETON LIVE")
@@ -109,11 +115,14 @@ struct SettingsView: View {
                 }
                 HStack { Spacer(); Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).onTapGesture { NSWorkspace.shared.open(URL(string: RELEASES)!) } }
             }
+            .frame(width: max(200, g.size.width - 48), alignment: .leading)
+            .clipped()
             .padding(24)
         }
-        .frame(width: 640)
         }
-        .frame(width: 640, height: 780).background(INK).preferredColorScheme(.dark)
+        }
+        .frame(minWidth: 640, idealWidth: 820, maxWidth: .infinity, minHeight: 480, idealHeight: 820, maxHeight: .infinity)
+        .background(INK).preferredColorScheme(.dark)
     }
 }
 
@@ -134,6 +143,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
 @main struct AbletonLiveActions: App {
     @NSApplicationDelegateAdaptor(Delegate.self) var delegate
     var body: some Scene {
-        WindowGroup("Ableton Live Actions (Mantra)") { SettingsView(u: UMBRELLA) }.windowResizability(.contentSize)
+        WindowGroup("Ableton Live Actions (Mantra)") { SettingsView(u: UMBRELLA) }
+            .windowResizability(.contentMinSize).defaultSize(width: 820, height: 820)
     }
 }

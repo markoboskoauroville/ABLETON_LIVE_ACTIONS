@@ -4,7 +4,7 @@ import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 
-let VERSION = 4
+let VERSION = 5
 let RELEASES = "https://github.com/markoboskoauroville/ABLETON_LIVE_ACTIONS/releases/latest"
 let BUNDLE = "com.ableton.live"
 let PYTHON = NSHomeDirectory() + "/.pyenv/versions/3.10.14/bin/python3"

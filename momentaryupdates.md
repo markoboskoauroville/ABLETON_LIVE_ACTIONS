@@ -79,3 +79,9 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 - The router inside this app: it keeps 11001 and opens 127.0.0.1:11002; any app sends its OSC to 11002, the router passes it to Live (11000) from the 11001 socket, and every answer that comes back is given to A1 and sent on to every app that spoke through the router in the last two minutes. **Status:** done, v4 built, installed, restarted (pid 1493 → 10501); lsof: 11001 and 127.0.0.1:11002 held by the app; tested from SANTOSHI_CONCERT_MIX tools/osc.py: tracks, markers, routing types and channels read back through 11002 while A1 kept its wire
 - The tools that ask Live (SANTOSHI_CONCERT_MIX tools/osc.py first) talk through 11002 when the router is there. **Status:** Santoshi done; ABLETON_TEACHER live.py, ABLETON_COMMAND_GUIDE act.py and the Mackie Log.txt reader still the old way
+
+## 25.10.2026, 07:33, session "ableton tutorials"
+
+> Please, by the way. Fix Swift app for Ableton Live Actions. It's cutting the text. There is no margin between text and the window. Please fix this in future, and control if it's the case that this is happening often. You have some bug in your building that you are cutting the text. You don't give enough space for windows, and windows can be resizable.
+
+**Status:** v5: the window resizable (minimum 640 × 480, first 820 × 820), the page takes the window's width and wraps; the row of marker and loop keys split in two (it was wider than 640 and pushed the page past both edges).
