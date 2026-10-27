@@ -126,4 +126,4 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 > add button to transfer names in both directions, from Mixer to Ableton or from Ableton to Mixer
 
-**Status:** saved, before code. A macro row with two buttons, MIXER → LIVE and LIVE → MIXER, through helpers/mixpad.py.
+**Status:** v10: the macro "Names between Live and the CQ12T" with MIXER → LIVE, LIVE → MIXER and CHECK. Tested both ways on the Santoshi set and the CQ (7 renamed in Live, 4 on the CQ), each read back, and both put back as they were.

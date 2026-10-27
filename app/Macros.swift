@@ -5,11 +5,20 @@
 import SwiftUI
 import AppKit
 
-struct Macro { let name: String; let script: String; let about: String }
+// a macro's buttons: a word and the arguments its script gets ("RUN" none, "CHECK" --dry)
+struct Macro {
+    let name: String; let script: String; let about: String
+    var buttons: [(String, [String])] = [("RUN", []), ("CHECK", ["--dry"])]
+}
 
 let MACROS = [
     Macro(name: "Map Channels to Allen & Heath CQ12T", script: "macro_cq12t.py",
           about: "CQ MixPad opened on the MacBook Pro screen, the CQ12T chosen and connected, Stream Mode set to Multitrack (16 × 16, the Mac confirms), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16"),
+    // the names both ways (Marko, 27.10.2026: "add button to transfer names in both directions, from Mixer to Ableton
+    // or from Ableton to Mixer")
+    Macro(name: "Names between Live and the CQ12T", script: "macro_names.py",
+          about: "track N ↔ CQ input N (1–10). MIXER → LIVE: the CQ's names become the track names. LIVE → MIXER: the track names go to the CQ, cut to its 6 characters (svemir VOC → SvmVOC). CHECK: both lists, nothing changed",
+          buttons: [("MIXER → LIVE", ["--to-live"]), ("LIVE → MIXER", ["--to-mixer"]), ("CHECK", ["--dry"])]),
 ]
 
 final class MacrosModule: NSObject, LiveModule, ObservableObject {
@@ -18,6 +27,7 @@ final class MacrosModule: NSObject, LiveModule, ObservableObject {
     let about = "pre-recorded runs: a name and RUN; CHECK only looks"
     let defaultOn = true
     @Published var running: String?
+    @Published var last = 0                     // the button pressed last, lit while its run goes on
     @Published var lines: [String: [String]] = [:]
     private var proc: Process?
 
@@ -27,11 +37,11 @@ final class MacrosModule: NSObject, LiveModule, ObservableObject {
     func hotkeys() -> [(Chord, () -> Void)] { [] }
     func status() -> String { running.map { "RUNNING · " + $0 } ?? "\(MACROS.count) MACRO" + (MACROS.count == 1 ? "" : "S") }
 
-    func run(_ m: Macro, dry: Bool) {
+    func run(_ m: Macro, _ args: [String]) {
         guard running == nil else { return }
         running = m.name; lines[m.name] = []
         let p = Process(); p.executableURL = URL(fileURLWithPath: PYTHON)
-        p.arguments = ["-u", SCRIPTS + "/" + m.script] + (dry ? ["--dry"] : [])
+        p.arguments = ["-u", SCRIPTS + "/" + m.script] + args
         let pipe = Pipe(); p.standardOutput = pipe; p.standardError = pipe
         var rest = ""
         pipe.fileHandleForReading.readabilityHandler = { [weak self] h in
@@ -55,11 +65,13 @@ final class MacrosModule: NSObject, LiveModule, ObservableObject {
     }
 
     private var keep: [NSMenuItem] = []
-    @objc func mRun(_ i: NSMenuItem) { run(MACROS[i.tag], dry: false) }
+    @objc func mRun(_ i: NSMenuItem) { let m = MACROS[i.tag / 10]; run(m, m.buttons[i.tag % 10].1) }
     func menuItems() -> [NSMenuItem] {
-        keep = MACROS.enumerated().map { n, m in
-            let i = NSMenuItem(title: "  ▶ " + m.name, action: running == nil ? #selector(mRun(_:)) : nil, keyEquivalent: "")
-            i.target = self; i.tag = n; return i
+        keep = MACROS.enumerated().flatMap { n, m in
+            m.buttons.enumerated().filter { $0.element.0 != "CHECK" }.map { b, btn in
+                let i = NSMenuItem(title: "  ▶ " + m.name + (m.buttons.count > 2 ? "  ·  " + btn.0 : ""), action: running == nil ? #selector(mRun(_:)) : nil, keyEquivalent: "")
+                i.target = self; i.tag = n * 10 + b; return i
+            }
         }
         return keep
     }
@@ -74,11 +86,12 @@ struct MacrosView: View {
                 let mac = MACROS[i]
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 4) {
-                        Text(mac.name).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(.white)
+                        Text(mac.name + (m.running == mac.name ? "  · running" : "")).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(.white)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer()
-                        Word(text: m.running == mac.name ? "RUNNING…" : "RUN", on: m.running == mac.name) { m.run(mac, dry: false) }
-                        Word(text: "CHECK", on: false) { m.run(mac, dry: true) }
+                        ForEach(mac.buttons.indices, id: \.self) { b in
+                            Word(text: mac.buttons[b].0, on: m.running == mac.name && m.last == b) { m.last = b; m.run(mac, mac.buttons[b].1) }
+                        }
                     }
                     Small(text: mac.about)
                     let ls = m.lines[mac.name] ?? []

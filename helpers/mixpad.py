@@ -191,6 +191,33 @@ def click(text, seen=None):
     return True
 
 
+def pid():
+    out = subprocess.run(["/usr/bin/pgrep", "-f", APP + ".app/Contents/MacOS"], capture_output=True, text=True).stdout.split()
+    return int(out[0]) if out else None
+
+
+def keys(code, flags=0):
+    """one key to MixPad's own process, never to the app in front (MANTRA_MANIFEST no-keystrokes: System Events
+    keystrokes once landed in iTerm2)"""
+    p = pid()
+    for down in (True, False):
+        e = Quartz.CGEventCreateKeyboardEvent(None, code, down)
+        Quartz.CGEventSetFlags(e, flags)
+        Quartz.CGEventPostToPid(p, e)
+        time.sleep(0.04)
+
+
+def type_text(text):
+    p = pid()
+    for ch in text:
+        for down in (True, False):
+            e = Quartz.CGEventCreateKeyboardEvent(None, 0, down)
+            Quartz.CGEventKeyboardSetUnicodeString(e, len(ch), ch)
+            Quartz.CGEventSetFlags(e, 0)
+            Quartz.CGEventPostToPid(p, e)
+            time.sleep(0.03)
+
+
 # MARK: the steps a macro takes (each returns words for the macro's log; found 27.10.2026 on MixPad 1.2.2, CQ-12T)
 
 def connect(unit="CQ12T", wait=20):
@@ -244,6 +271,69 @@ def stream_mode(want="Multitrack"):
     return was, (want if lit(want) else other if lit(other) else None)
 
 
+# CONFIG › INPUTS: the ten inputs in two rows of five, the icon's centre as a share of the window (27.10.2026)
+INPUT_X = (0.2612, 0.3479, 0.4345, 0.5218, 0.6091)
+INPUT_Y = (0.278, 0.483)
+NAME_Y = (0.346, 0.553)          # the name under each icon
+CQ_INPUTS = 10
+
+
+def inputs_page():
+    return click("CONFIG") and click("INPUTS") and bool(find("Input Source"))
+
+
+def input_point(n, y=INPUT_Y):
+    w = window()
+    return w[1] + INPUT_X[(n - 1) % 5] * w[3], w[2] + y[(n - 1) // 5] * w[4]
+
+
+def input_names():
+    """{1: "SvmVOC", ...}: the name under each input's icon on CONFIG › INPUTS"""
+    if not inputs_page():
+        return None
+    seen = read(); w = window(); out = {}
+    for n in range(1, CQ_INPUTS + 1):
+        x, y = input_point(n, NAME_Y)
+        near = [s for s in seen if abs(s[1] - x) < 0.04 * w[3] and abs(s[2] - y) < 0.025 * w[4]]
+        out[n] = near[0][0].strip() if near else ""
+    return out
+
+
+def cq_name(name):
+    """a Live track name as the CQ keeps it: 6 characters, no "_" (cq-mixer-virtual-soundcheck.md). A word too long
+    keeps its first letter and its consonants: "svemir VOC" → SvmVOC, "Mridangam Low" → MrdLow, "Mridangam" → Mrdngm"""
+    words = [x for x in name.replace("_", " ").split() if x]
+    if not words:
+        return ""
+    if len("".join(words)) <= 6:
+        return "".join(words)
+    short = lambda w: w[0] + "".join(c for c in w[1:] if c.lower() not in "aeiou")
+    if len(words) == 1:
+        return short(words[0])[:6]
+    last = words[-1][:3] if len(words[-1]) > 3 else words[-1]
+    first = short(words[0])[:6 - len(last)]
+    first = first[0].upper() + first[1:]
+    return (first + last)[:6]
+
+
+def set_input_name(n, name):
+    """input n's name through its Name/Colour dialog; True when MixPad shows it afterwards"""
+    front(); click_at(*input_point(n)); time.sleep(0.8)
+    b = find("Name/Colour")
+    if not b:
+        return False
+    w = window(); click_at(b[1], b[2] + 0.044 * w[4]); time.sleep(1.0)
+    f = find("Name:")
+    if not f:
+        return False
+    click_at(f[1], f[2] + 0.05 * w[4]); time.sleep(0.3)
+    keys(0, Quartz.kCGEventFlagMaskCommand); keys(51); type_text(name); time.sleep(0.3)
+    if not click("Apply"):
+        return False
+    time.sleep(0.8)
+    return (input_names() or {}).get(n) == name
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "words"
     if cmd == "open":
@@ -257,6 +347,10 @@ if __name__ == "__main__":
         print(connect()[1])
     elif cmd == "stream":
         print(stream_mode(sys.argv[2] if len(sys.argv) > 2 else "Multitrack"))
+    elif cmd == "names":
+        print(input_names())
+    elif cmd == "name":
+        print(set_input_name(int(sys.argv[2]), sys.argv[3]))
     elif cmd == "lit":
         print(lit(" ".join(sys.argv[2:])))
     elif cmd == "shot":
