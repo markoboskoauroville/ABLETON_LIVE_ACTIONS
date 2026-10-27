@@ -157,5 +157,5 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 > I'm not hearing it. Use our Ableton Actions application to set every output to main from every channel
 
-**Status:** saved, before code. A macro "Route Every Track to Main (In the Box)": each track's Audio To Main and Audio
+**Status:** v15, tested on Santoshi Concert Full Mix: 9 of 9 to Main, read back. A macro "Route Every Track to Main (In the Box)": each track's Audio To Main and Audio
 From No Input, one track selected at a time (a change on several selected tracks lands on all), read back.

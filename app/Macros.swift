@@ -16,6 +16,9 @@ let MACROS = [
     Macro(name: "Map Channels to Allen & Heath CQ12T", script: "macro_cq12t.py",
           about: "CQ MixPad opened on the MacBook Pro screen, the CQ12T chosen and connected, Stream Mode set to Multitrack (16 × 16, the Mac confirms), the mixer scene \"Live Multitrack\" recalled (names, inputs 1–10 from USB; stored by itself the first time), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16",
           auto: ["--auto"]),
+    // in the box (Marko, 27.10.2026: "Use our Ableton Actions application to set every output to main from every channel")
+    Macro(name: "Route Every Track to Main (In the Box)", script: "macro_main.py",
+          about: "mixing in the box: every track Audio To Main and Audio From No Input, one track selected at a time, read back; Live's Main goes to the output device (BlackHole while measuring, the ADAM to listen)"),
     // the names both ways (Marko, 27.10.2026: "add button to transfer names in both directions, from Mixer to Ableton
     // or from Ableton to Mixer")
     Macro(name: "Names between Live and the CQ12T", script: "macro_names.py",
