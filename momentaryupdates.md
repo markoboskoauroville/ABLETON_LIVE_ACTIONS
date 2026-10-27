@@ -105,3 +105,7 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > I have application on my computer called Rectangle. And it it is a window manager. Please don't drag and uh manually windows through the screens. You can snap everything very quickly. Use this as much as you can. Rectangle.
 
 **Status:** saved. MixPad is placed on the MacBook Pro screen by Rectangle (its rectangle:// actions), never moved by hand.
+
+> Another action to build after this action is to rename Mixer based on the channels in Ableton. Minisynchronizing names between Ableton and Mixer in both directions, actually whatever user chooses.
+
+**Status:** saved; next macro after the mapping: names Live → CQ or CQ → Live, the user chooses the direction (CQ keeps 6 characters, no "_": MANTRA_MANIFEST cq-mixer-virtual-soundcheck.md).
