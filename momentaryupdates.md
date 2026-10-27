@@ -136,3 +136,7 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > I resetted the mixer to factory default. Let's now test setting up this mixer to pick up track names from Ableton and also to be digital in and out for Ableton
 
 **Status:** v12, tested on the reset mixer: MixPad's "Connection lost" answered (Ok, reconnect), Stream Mode Multitrack (the factory default), inputs 1–10 set from Analogue to USB (CONFIG › INPUTS › Input Source), Live's devices (No Device after the reset) back on the CQ12T, tracks 1–10 routed and read back; LIVE → MIXER: 10 renamed (Ip1… → SvmVOC…), live signal seen on the inputs' meters. A name now takes about 10 s (it was about 45).
+
+> now all inputs and outputs in Ableton Live are set. You can please store this configuration and load it instead of clicking every time
+
+**Status:** saved, before code. Live keeps its device and Input/Output Config itself. The mixer side: a CQ Scene stored once with this setup (names, input sources), recalled by the macro in one step; the setup also kept in the app as a profile file.
