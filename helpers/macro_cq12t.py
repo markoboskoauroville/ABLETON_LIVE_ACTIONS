@@ -77,6 +77,13 @@ except OSError:
 
 
 def q(addr, *args):
+    """the answer to this address, and for a track question to this track (a late answer to the track before must
+    never be taken for this one: every track once read "Ext. Out 1")"""
+    while True:                        # what is left over from earlier questions
+        S.setblocking(False)
+        try: S.recv(65536)
+        except (BlockingIOError, OSError): break
+    S.setblocking(True); S.settimeout(2)
     S.sendto(enc(addr, *args), LIVE)
     end = time.time() + 2
     while time.time() < end:
@@ -84,7 +91,7 @@ def q(addr, *args):
             a, r = dec(S.recv(65536))
         except socket.timeout:
             break
-        if a == addr:
+        if a == addr and (not args or not isinstance(args[0], int) or (r and r[0] == args[0])):
             return r
         if a == "/live/error":
             raise RuntimeError(" ".join(map(str, r)))
@@ -142,7 +149,7 @@ def route(t, kind, typ, n):
     """track t (0-based) → its Ext. Out / Ext. In channel n; returns the channel's name, or why not"""
     types = q(f"/live/track/get/available_{kind}_routing_types", t)
     if not types or typ not in types[1:]:
-        return None, f"no {typ} on this track" + (" (a MIDI track)" if kind == "input" else "")
+        return None, f"no {typ} on this track" + (" (Live's input device is not set)" if kind == "input" else "")
     if not DRY:
         send(f"/live/track/set/{kind}_routing_type", t, typ)
     chans = (q(f"/live/track/get/available_{kind}_routing_channels", t) or [t])[1:]
@@ -210,7 +217,7 @@ def main():
         say(f"2 LIVE'S AUDIO: input {inp or '?'}, output {outp or '?'}: not the CQ12T")
         if DRY:
             say("  (dry: Live's Settings would be opened and Marko asked to choose CQ12T)")
-        else:
+        if not DRY:
             open_live_settings()
             want = " and ".join(w for w, d in (("Audio Input Device", inp), ("Audio Output Device", outp)) if not (d and CQ in d))
             speak(f"Marko, Live's Settings is open. On the Audio tab, set {want} to CQ12T.")
@@ -223,7 +230,8 @@ def main():
                     break
             else:
                 say("STOPPED: Live's audio is still not the CQ12T"); return 1
-    say(f"2 LIVE'S AUDIO: input {inp}, output {outp} ✓")
+    if inp and CQ in inp and outp and CQ in outp:
+        say(f"2 LIVE'S AUDIO: input {inp}, output {outp} ✓")
 
     # 3. one by one: track N → Ext. Out N and Ext. In N
     say(f"3 THE CHANNELS: {tracks} tracks in the set, {min(tracks, CHANNELS)} mapped to the CQ's 16")

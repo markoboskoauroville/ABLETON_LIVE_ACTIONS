@@ -113,3 +113,7 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > please, in general fix the port clashing. There must be some kind of automatic assignment of the port as central service for all my star applications so there is no clashing of the ports never
 
 **Status:** saved (27.10.2026, said while the Lua A1 in Hammerspoon held 11001 against this app). A system-wide piece, beyond this repo: a central port service for every star app; planned after this macro.
+
+> please put macros at the top because this is something I'm going to use. Or even better, organize the whole user interface in tabs, please
+
+**Status:** saved, before code. Tabs, one per module, MACROS the first.
