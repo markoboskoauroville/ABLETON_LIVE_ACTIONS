@@ -233,6 +233,37 @@ def main():
     if inp and CQ in inp and outp and CQ in outp:
         say(f"2 LIVE'S AUDIO: input {inp}, output {outp} ✓")
 
+    # 2b. Live's Input Config and Output Config: a single (mono) channel for every track to map, 1 … N
+    need = min(tracks, CHANNELS)
+    def missing():
+        gone = {}
+        for kind, typ in (("input", "Ext. In"), ("output", "Ext. Out")):
+            types = q(f"/live/track/get/available_{kind}_routing_types", 0) or []
+            if typ not in types[1:]:
+                gone[kind] = list(range(1, need + 1)); continue
+            if not DRY:
+                send(f"/live/track/set/{kind}_routing_type", 0, typ)
+            chans = (q(f"/live/track/get/available_{kind}_routing_channels", 0) or [0])[1:]
+            gone[kind] = [n for n in range(1, need + 1) if not pick(chans, str(n))]
+        return {k: v for k, v in gone.items() if v}
+    gone = missing()
+    if gone:
+        what = " and ".join(f"{'Input' if k == 'input' else 'Output'} Config: {v[0]} to {v[-1]} as mono" for k, v in gone.items())
+        say(f"2 LIVE'S CHANNELS: not switched on in Live: {what}")
+        if DRY:
+            say("  (dry: Marko would be asked)")
+        else:
+            open_live_settings()
+            speak(f"Marko, in Live's Settings, Audio tab, open {what.replace(' as mono', '')}, and switch them on as mono channels. Then OK.")
+            say(f"  Live's Settings is open: {what} (waiting up to 3 minutes)")
+            end = time.time() + 180
+            while gone and time.time() < end:
+                time.sleep(3); gone = missing()
+            if gone:
+                say("STOPPED: Live's channels are still not switched on"); return 1
+    if not gone:
+        say(f"2 LIVE'S CHANNELS: Ext. In and Ext. Out 1–{need} as mono ✓")
+
     # 3. one by one: track N → Ext. Out N and Ext. In N
     say(f"3 THE CHANNELS: {tracks} tracks in the set, {min(tracks, CHANNELS)} mapped to the CQ's 16")
     done, problems = 0, []

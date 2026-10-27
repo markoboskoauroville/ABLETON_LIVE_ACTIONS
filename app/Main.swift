@@ -7,11 +7,16 @@ import AppKit
 
 final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
     @Published var on: [String: Bool] = [:]
+    // the window is in tabs, one per module (Marko, 27.10.2026: "organize the whole user interface in tabs"); the
+    // tab last chosen comes back
+    @Published var tab: String = SETTINGS.read()["tab"] as? String ?? "macros" {
+        didSet { SETTINGS.change { $0["tab"] = self.tab } }
+    }
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     override init() {
         super.init()
-        MODULES = [A1Module(), MackieModule(), MidiKeysModule(), MacrosModule()]
+        MODULES = [MacrosModule(), A1Module(), MackieModule(), MidiKeysModule()]   // MACROS first: the one he uses (27.10.2026)
         let saved = SETTINGS.read()["modules"] as? [String: Bool] ?? [:]
         for m in MODULES { on[m.id] = saved[m.id] ?? m.defaultOn }
         let menu = NSMenu(); menu.delegate = self; item.menu = menu
@@ -79,6 +84,32 @@ struct ModuleSection: View {
     }
 }
 
+// THE TABS: one per module, its title; lit is the tab shown, a dot says whether the module is on. In a narrow window
+// they go on two lines instead of being cut.
+struct TabRow: View {
+    @ObservedObject var u: Umbrella
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 4) { ForEach(MODULES.indices, id: \.self) { tab(MODULES[$0]) } }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) { ForEach(0..<2, id: \.self) { tab(MODULES[$0]) } }
+                HStack(spacing: 4) { ForEach(2..<MODULES.count, id: \.self) { tab(MODULES[$0]) } }
+            }
+        }
+        .padding(.horizontal, 18).padding(.vertical, 6).frame(maxWidth: .infinity, alignment: .leading)
+    }
+    func tab(_ m: LiveModule) -> some View {
+        let lit = u.tab == m.id
+        return HStack(spacing: 5) {
+            Circle().fill(u.on[m.id] == true ? GREEN : GREY).frame(width: 6, height: 6)
+            Text(m.title).font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(lit ? .white : GREY).lineLimit(1).fixedSize()
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 5).fill(lit ? Color.white.opacity(0.10) : .clear))
+        .contentShape(Rectangle()).onTapGesture { u.tab = m.id }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var u: Umbrella
     var body: some View {
@@ -96,6 +127,8 @@ struct SettingsView: View {
         }
         .padding(.leading, 24).padding(.trailing, 10).padding(.vertical, 8)
         Divider()
+        TabRow(u: u)
+        Divider()
         // the window is resizable and the page takes its width, so a long line wraps instead of being cut (Marko,
         // 25.10.2026: "It's cutting the text. There is no margin between text and the window ... windows can be
         // resizable"; the fixed 640 let one wide row push the whole page past both edges)
@@ -109,10 +142,7 @@ struct SettingsView: View {
                     Spacer()
                     Text(liveApp() == nil ? "NOT RUNNING" : "RUNNING").font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(liveApp() == nil ? GREY : GREEN)
                 }
-                ForEach(MODULES.indices, id: \.self) { i in
-                    ModuleSection(u: u, m: MODULES[i])
-                    Divider()
-                }
+                if let m = MODULES.first(where: { $0.id == u.tab }) ?? MODULES.first { ModuleSection(u: u, m: m) }
                 HStack { Spacer(); Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).onTapGesture { NSWorkspace.shared.open(URL(string: RELEASES)!) } }
             }
             .frame(width: max(200, g.size.width - 48), alignment: .leading)

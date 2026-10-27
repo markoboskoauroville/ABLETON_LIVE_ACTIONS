@@ -116,4 +116,4 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 > please put macros at the top because this is something I'm going to use. Or even better, organize the whole user interface in tabs, please
 
-**Status:** saved, before code. Tabs, one per module, MACROS the first.
+**Status:** v8: tabs under the first row, one per module (a dot: on or off), MACROS first, the tab last chosen comes back; checked by a window screenshot at 640 wide on the MacBook Pro screen.
