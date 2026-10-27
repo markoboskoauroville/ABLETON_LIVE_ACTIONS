@@ -132,3 +132,7 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 (Said after the proposal: Live keeps the device and Input/Output Config; all 16 mono both ways; an AUTO switch that runs the mapping when a set opens with the CQ12T on USB.)
 **Status:** saved; building AUTO, then the central port service.
+
+> I resetted the mixer to factory default. Let's now test setting up this mixer to pick up track names from Ableton and also to be digital in and out for Ableton
+
+**Status:** saved, before code. "Digital in and out": the CQ's inputs 1–10 take their source from USB (CONFIG › INPUTS › Input Source), Stream Mode Multitrack; then LIVE → MIXER names.
