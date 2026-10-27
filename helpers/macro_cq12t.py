@@ -4,7 +4,7 @@ assign the first channel to the last channel external output 1 and external outp
 automatic mapping one by one to the mixer.")
 
 The run, one line printed per step (the app shows every line; the last one is the verdict):
-  1. the CQ12T in multitrack: CQ MixPad opened on the MacBook Pro screen (Rectangle), the mixer chosen in its list
+  1. the CQ12T in multitrack, its inputs 1–10 from USB: CQ MixPad opened on the MacBook Pro screen (Rectangle), the mixer chosen in its list
      and Connect clicked, CONFIG › USB / SD › Stream Mode read and set to Multitrack (helpers/mixpad.py, Marko:
      "once you open the CQ Mixpad, you must be able to locate its Connect button"); then CoreAudio must see
      "CQ12T - Audio" with 16 in and 16 out. The app in front before is given back.
@@ -202,6 +202,20 @@ def main():
         say(f"  CONFIG › USB / SD › Stream Mode: {was}" + (f" → {now}" if was != now else "") + (" ✓" if now == "Multitrack" else ""))
         if now != "Multitrack":
             say("STOPPED: the CQ12T is not in multitrack" + (" (dry: not changed)" if DRY else "")); return 1
+        # digital in: the CQ's inputs 1–10 play what Live sends them (Marko, 27.10.2026: "to be digital in and out for
+        # Ableton"; a factory reset leaves them Analogue)
+        if mixpad.inputs_page():
+            bad = []
+            for i in range(1, mixpad.CQ_INPUTS + 1):
+                if DRY:
+                    mixpad.front(); mixpad.click_at(*mixpad.input_point(i)); time.sleep(0.6)
+                    if mixpad.lit("Analogue"): bad.append(i)
+                elif not mixpad.set_input_source(i, usb=True):
+                    bad.append(i)
+            say(f"  CONFIG › INPUTS › Input Source: inputs 1–{mixpad.CQ_INPUTS} " +
+                ("from USB ✓" if not bad else ("still Analogue: " if DRY else "✗ not set to USB: ") + ", ".join(map(str, bad))))
+        else:
+            say("  ✗ CQ MixPad's CONFIG › INPUTS was not found: the input sources are not checked")
     finally:
         if was_front and was_front != "com.allenheath.CQ.MixPad":
             subprocess.run(["/usr/bin/open", "-b", was_front], capture_output=True)

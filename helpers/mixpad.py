@@ -226,6 +226,9 @@ def connect(unit="CQ12T", wait=20):
     if not open_app():
         return False, "CQ MixPad did not open"
     seen = read()
+    lost = ""
+    if find("Connection lost", seen):         # the mixer restarted or was reset: Ok, then the unit list again
+        click("Ok", seen); time.sleep(2); seen = read(); lost = "the connection had been lost; "
     if find("CONFIG", seen) and find("HOME", seen):
         return True, "CQ MixPad: already connected"
     if not find("Choose Unit", seen):
@@ -244,7 +247,7 @@ def connect(unit="CQ12T", wait=20):
         time.sleep(1.5)
         seen = read()
         if find("CONFIG", seen) and find("HOME", seen):
-            return True, f"CQ MixPad: {u[0]} in the list, Connect clicked, connected"
+            return True, f"CQ MixPad: {lost}{u[0]} in the list, Connect clicked, connected"
     return False, "CQ MixPad: Connect clicked, but the mixer's pages never came"
 
 
@@ -287,9 +290,9 @@ def input_point(n, y=INPUT_Y):
     return w[1] + INPUT_X[(n - 1) % 5] * w[3], w[2] + y[(n - 1) // 5] * w[4]
 
 
-def input_names():
-    """{1: "SvmVOC", ...}: the name under each input's icon on CONFIG › INPUTS"""
-    if not inputs_page():
+def input_names(goto=True):
+    """{1: "SvmVOC", ...}: the name under each input's icon on CONFIG › INPUTS (goto=False: the page is already there)"""
+    if goto and not inputs_page():
         return None
     seen = read(); w = window(); out = {}
     for n in range(1, CQ_INPUTS + 1):
@@ -331,7 +334,28 @@ def set_input_name(n, name):
     if not click("Apply"):
         return False
     time.sleep(0.8)
-    return (input_names() or {}).get(n) == name
+    return (input_names(goto=False) or {}).get(n) == name
+
+
+# CONFIG › INPUTS › Input Source: "Analogue" above, the SD | USB half below it (no words); the ST input's icon
+SOURCE_ANALOGUE = (0.179, 0.892)
+SOURCE_USB = (0.179, 0.937)
+ST_ICON = (0.8425, 0.366)
+
+
+def set_input_source(n, usb=True):
+    """input n (1–10, or "ST") from USB/SD (usb=True: the computer plays on it) or Analogue; True when it reads so.
+    Marko, 27.10.2026: "to be digital in and out for Ableton"."""
+    w = window(); front()
+    click_at(*(input_point(n) if n != "ST" else (w[1] + ST_ICON[0] * w[3], w[2] + ST_ICON[1] * w[4]))); time.sleep(0.8)
+    a = lit("Analogue")
+    if a is None:
+        return False
+    if a == usb:                        # Analogue lit while USB is wanted, or the other way
+        x, y = SOURCE_USB if usb else SOURCE_ANALOGUE
+        front(); click_at(w[1] + x * w[3], w[2] + y * w[4]); time.sleep(0.8)
+        a = lit("Analogue")
+    return a is not None and a != usb
 
 
 if __name__ == "__main__":
@@ -351,6 +375,8 @@ if __name__ == "__main__":
         print(input_names())
     elif cmd == "name":
         print(set_input_name(int(sys.argv[2]), sys.argv[3]))
+    elif cmd == "source":
+        print(set_input_source(sys.argv[2] if sys.argv[2] == "ST" else int(sys.argv[2]), sys.argv[3] != "analogue"))
     elif cmd == "lit":
         print(lit(" ".join(sys.argv[2:])))
     elif cmd == "shot":

@@ -17,3 +17,8 @@ Mode Multitrack; CoreAudio must then show 16 × 16; (2) Live's devices from Log.
 AbletonOSC, else Live's Settings opened and Marko asked by voice, polled 3 min; (3) track N → Ext. Out N / Ext. In N,
 each selected alone, the whole set read back. OSC goes through the router on 11002 when the app holds 11001.
 The window is in tabs since v8 (Umbrella.tab, kept in live-actions.json), MACROS first.
+
+**27.10.2026, v11–v12.** AUTO (Macro.auto, `macroAuto` in live-actions.json): the module polls Live's main window
+title every 3 s by accessibility; a new title = a set opened → 4 s later `--auto` (MixPad only when the Mac does not see
+16 × 16, tracks already right untouched). AUTO cannot see the CQ's input sources without MixPad: after a factory reset
+press RUN. v12: RUN sets the CQ's inputs 1–10 to USB (`mixpad.set_input_source`), connect() answers "Connection lost".

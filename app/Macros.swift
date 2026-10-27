@@ -14,7 +14,7 @@ struct Macro {
 
 let MACROS = [
     Macro(name: "Map Channels to Allen & Heath CQ12T", script: "macro_cq12t.py",
-          about: "CQ MixPad opened on the MacBook Pro screen, the CQ12T chosen and connected, Stream Mode set to Multitrack (16 × 16, the Mac confirms), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16",
+          about: "CQ MixPad opened on the MacBook Pro screen, the CQ12T chosen and connected, Stream Mode set to Multitrack (16 × 16, the Mac confirms), inputs 1–10 from USB (digital in), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16",
           auto: ["--auto"]),
     // the names both ways (Marko, 27.10.2026: "add button to transfer names in both directions, from Mixer to Ableton
     // or from Ableton to Mixer")
