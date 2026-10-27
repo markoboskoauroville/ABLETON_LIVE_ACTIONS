@@ -85,3 +85,9 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > Please, by the way. Fix Swift app for Ableton Live Actions. It's cutting the text. There is no margin between text and the window. Please fix this in future, and control if it's the case that this is happening often. You have some bug in your building that you are cutting the text. You don't give enough space for windows, and windows can be resizable.
 
 **Status:** v5: the window resizable (minimum 640 × 480, first 820 × 820), the page takes the window's width and wraps; the row of marker and loop keys split in two (it was wider than 640 and pushed the page past both edges).
+
+## 27.10.2026: MACROS, a new category; the first one maps Live's channels to the CQ12T
+
+> please build the process in my Ableton Actions program. We have a new category, which is kind of a pre-recorded macro. There will be a macro name and then the run. This macro name is called "Map Channels to Allen and Heat CQ12T." When you do that, you need to make sure my mixer is in multi-track mode. You can confirm that by connecting and opening the CQ Mixpad, connecting to it, and then seeing the settings. Inside Ableton Live, you need to change the input and output source to that mixer. You need to assign the first channel to the last channel external output 1 and external output 2, and the same for input. It's automatic mapping one by one to the mixer. Please make that action now
+
+**Status:** saved, before code.
