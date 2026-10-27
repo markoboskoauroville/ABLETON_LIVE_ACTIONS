@@ -9,11 +9,13 @@ import AppKit
 struct Macro {
     let name: String; let script: String; let about: String
     var buttons: [(String, [String])] = [("RUN", []), ("CHECK", ["--dry"])]
+    var auto: [String]? = nil          // the arguments of its AUTO run, when it can run by itself as a set opens
 }
 
 let MACROS = [
     Macro(name: "Map Channels to Allen & Heath CQ12T", script: "macro_cq12t.py",
-          about: "CQ MixPad opened on the MacBook Pro screen, the CQ12T chosen and connected, Stream Mode set to Multitrack (16 × 16, the Mac confirms), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16"),
+          about: "CQ MixPad opened on the MacBook Pro screen, the CQ12T chosen and connected, Stream Mode set to Multitrack (16 × 16, the Mac confirms), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16",
+          auto: ["--auto"]),
     // the names both ways (Marko, 27.10.2026: "add button to transfer names in both directions, from Mixer to Ableton
     // or from Ableton to Mixer")
     Macro(name: "Names between Live and the CQ12T", script: "macro_names.py",
@@ -30,16 +32,53 @@ final class MacrosModule: NSObject, LiveModule, ObservableObject {
     @Published var last = 0                     // the button pressed last, lit while its run goes on
     @Published var lines: [String: [String]] = [:]
     private var proc: Process?
+    // AUTO (Marko, 27.10.2026, after "can this configuration be saved ... and then just applied automatically"): a
+    // macro with AUTO on runs by itself a few seconds after a set opens in Live. The set is Live's window title; the
+    // first title seen when this app starts is not an opening.
+    @Published var autoOn: [String: Bool] = SETTINGS.read()["macroAuto"] as? [String: Bool] ?? [:]
+    private var watch: Timer?
+    private var lastSet: String?
+    private var pendingAuto: DispatchWorkItem?
 
-    func setOn(_ on: Bool) { if !on { proc?.terminate() } }
+    func setOn(_ on: Bool) {
+        if !on { proc?.terminate(); watch?.invalidate(); watch = nil; return }
+        lastSet = liveSet()
+        watch = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in self?.look() }
+    }
+    func setAuto(_ m: Macro, _ v: Bool) { autoOn[m.name] = v; SETTINGS.change { $0["macroAuto"] = self.autoOn } }
+    // the set open in Live: its main window's title, through accessibility (nil when Live is not running)
+    func liveSet() -> String? {
+        guard let app = liveApp() else { return nil }
+        let ax = AXUIElementCreateApplication(app.processIdentifier)
+        var w: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(ax, kAXMainWindowAttribute as CFString, &w) == .success, let win = w else { return nil }
+        var t: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(win as! AXUIElement, kAXTitleAttribute as CFString, &t) == .success else { return nil }
+        let title = (t as? String ?? "").trimmingCharacters(in: .whitespaces)
+        return title.isEmpty ? nil : title
+    }
+    private func look() {
+        guard let set = liveSet(), set != lastSet else { return }
+        lastSet = set
+        pendingAuto?.cancel()
+        let job = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            for m in MACROS where m.auto != nil && self.autoOn[m.name] == true && self.running == nil {
+                self.lines[m.name] = ["AUTO: \"\(set)\" opened"]
+                self.run(m, m.auto!, keep: true); break
+            }
+        }
+        pendingAuto = job
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4, execute: job)     // the set loads its tracks first
+    }
     func liveCame() {}
     func liveLeft() {}
     func hotkeys() -> [(Chord, () -> Void)] { [] }
     func status() -> String { running.map { "RUNNING · " + $0 } ?? "\(MACROS.count) MACRO" + (MACROS.count == 1 ? "" : "S") }
 
-    func run(_ m: Macro, _ args: [String]) {
+    func run(_ m: Macro, _ args: [String], keep: Bool = false) {
         guard running == nil else { return }
-        running = m.name; lines[m.name] = []
+        running = m.name; if !keep { lines[m.name] = [] }
         let p = Process(); p.executableURL = URL(fileURLWithPath: PYTHON)
         p.arguments = ["-u", SCRIPTS + "/" + m.script] + args
         let pipe = Pipe(); p.standardOutput = pipe; p.standardError = pipe
@@ -89,11 +128,15 @@ struct MacrosView: View {
                         Text(mac.name + (m.running == mac.name ? "  · running" : "")).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(.white)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer()
+                        if mac.auto != nil {
+                            Word(text: "AUTO", on: m.autoOn[mac.name] == true) { m.setAuto(mac, !(m.autoOn[mac.name] == true)) }
+                                .help("runs by itself a few seconds after a set opens in Live")
+                        }
                         ForEach(mac.buttons.indices, id: \.self) { b in
                             Word(text: mac.buttons[b].0, on: m.running == mac.name && m.last == b) { m.last = b; m.run(mac, mac.buttons[b].1) }
                         }
                     }
-                    Small(text: mac.about)
+                    Small(text: mac.about + (mac.auto != nil ? (m.autoOn[mac.name] == true ? ". AUTO is on: it runs by itself when a set opens (tracks already right are left alone, CQ MixPad only if the Mac does not see 16 × 16)" : ". AUTO: switch it on and it runs by itself when a set opens") : ""))
                     let ls = m.lines[mac.name] ?? []
                     if !ls.isEmpty {
                         VStack(alignment: .leading, spacing: 2) {

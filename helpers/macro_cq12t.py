@@ -12,11 +12,16 @@ The run, one line printed per step (the app shows every line; the last one is th
      if not, Live's Settings is opened and Marko is asked by voice to choose CQ12T; the log is watched for 3 minutes
      (Live's binary Preferences.cfg is never patched: MANTRA_MANIFEST ableton-live-audio.md)
   3. track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2, ... up to 16, one by one over AbletonOSC, each read back
-Run: python3 macro_cq12t.py [--dry]   (--dry: checks and reports, changes nothing)
+Run: python3 macro_cq12t.py [--dry | --auto]   (--dry: checks and reports, changes nothing; --auto: the app's own run
+when a set opens, MixPad only if the Mac does not see 16 × 16, tracks already right left alone)
 """
 import glob, json, os, socket, struct, subprocess, sys, time, urllib.request
 
 DRY = "--dry" in sys.argv
+# AUTO: started by the app when a set opens (Marko, 27.10.2026). Quiet: CQ MixPad is opened only when the Mac does not
+# see 16 × 16 already (that is multitrack), a track already on its channel is not touched, and a set with nothing to
+# change says so in one line.
+AUTO = "--auto" in sys.argv
 CQ = "CQ12T"
 CHANNELS = 16
 VOICE = "http://127.0.0.1:8837/speak"
@@ -150,6 +155,10 @@ def route(t, kind, typ, n):
     types = q(f"/live/track/get/available_{kind}_routing_types", t)
     if not types or typ not in types[1:]:
         return None, f"no {typ} on this track" + (" (Live's input device is not set)" if kind == "input" else "")
+    now_t = q(f"/live/track/get/{kind}_routing_type", t)
+    now_c = q(f"/live/track/get/{kind}_routing_channel", t)
+    if now_t and now_c and now_t[1] == typ and pick([now_c[1]], str(n)):
+        return now_c[1], None              # already on its channel: not touched (no selection changed)
     if not DRY:
         # one track selected, this one: with several selected, Live gives the change to all of them (27.10.2026: the
         # first run left every track on 10)
@@ -174,6 +183,12 @@ def main():
 
     # 1. the mixer in multitrack: CQ MixPad says so (and is made to), CoreAudio confirms 16 × 16
     import mixpad
+    m = mixer()
+    if AUTO and m and m[1] >= CHANNELS and m[2] >= CHANNELS:
+        say(f"1 THE MIXER: {m[0]}, {m[1]} in, {m[2]} out: multitrack ✓ (CQ MixPad not needed)")
+        return rest()
+    if AUTO and not m:
+        say("STOPPED: no CQ12T on USB (nothing done)"); return 1
     was_front = subprocess.run(["/usr/bin/osascript", "-e", 'tell application "System Events" to get bundle identifier '
                                 'of first process whose frontmost is true'], capture_output=True, text=True).stdout.strip()
     try:
@@ -200,6 +215,10 @@ def main():
             return 1
         time.sleep(1)       # the CQ comes back on USB with its new channel count
     say(f"  the Mac: {m[0]}, {m[1]} in, {m[2]} out ✓")
+    return rest()
+
+
+def rest():
 
     # Live must be running and AbletonOSC must answer
     if subprocess.run(["/usr/bin/pgrep", "-x", "Live"], capture_output=True).returncode != 0:
