@@ -99,3 +99,9 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > actions should be able to open CQ Mixpad and change settings in the mixer, in this case multi-track streaming, and anything else we need in the future
 
 **Status:** saved, before code. Plan: `helpers/mixpad.py`, an eye and a hand for CQ MixPad (it draws its own buttons, no accessibility tree): open it, photograph its window, read every word with macOS Vision text recognition, click a word; macros use it (first: connect, then multitrack streaming).
+
+> Please do all your testing now on the MacBook Pro screen, not on the BenQ. Run everything on that side, please.
+
+> I have application on my computer called Rectangle. And it it is a window manager. Please don't drag and uh manually windows through the screens. You can snap everything very quickly. Use this as much as you can. Rectangle.
+
+**Status:** saved. MixPad is placed on the MacBook Pro screen by Rectangle (its rectangle:// actions), never moved by hand.
