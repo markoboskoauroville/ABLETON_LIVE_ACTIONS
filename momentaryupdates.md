@@ -95,3 +95,7 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > once you open the CQ Mixpad, you must be able to locate its Connect button. So two checks: if the mixer is listed there in the list, then you can just click Connect and connect to the mixer automatically
 
 **Status:** saved, before code.
+
+> actions should be able to open CQ Mixpad and change settings in the mixer, in this case multi-track streaming, and anything else we need in the future
+
+**Status:** saved, before code. Plan: `helpers/mixpad.py`, an eye and a hand for CQ MixPad (it draws its own buttons, no accessibility tree): open it, photograph its window, read every word with macOS Vision text recognition, click a word; macros use it (first: connect, then multitrack streaming).
