@@ -9,7 +9,7 @@ struct Macro { let name: String; let script: String; let about: String }
 
 let MACROS = [
     Macro(name: "Map Channels to Allen & Heath CQ12T", script: "macro_cq12t.py",
-          about: "the CQ12T on USB in multitrack (16 × 16), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16"),
+          about: "CQ MixPad opened on the MacBook Pro screen, the CQ12T chosen and connected, Stream Mode set to Multitrack (16 × 16, the Mac confirms), Live's audio input and output the CQ12T, then track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2 … up to 16"),
 ]
 
 final class MacrosModule: NSObject, LiveModule, ObservableObject {

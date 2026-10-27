@@ -4,7 +4,10 @@ assign the first channel to the last channel external output 1 and external outp
 automatic mapping one by one to the mixer.")
 
 The run, one line printed per step (the app shows every line; the last one is the verdict):
-  1. the CQ12T on USB in multitrack: CoreAudio sees "CQ12T - Audio" with 16 in and 16 out (fewer is not multitrack)
+  1. the CQ12T in multitrack: CQ MixPad opened on the MacBook Pro screen (Rectangle), the mixer chosen in its list
+     and Connect clicked, CONFIG › USB / SD › Stream Mode read and set to Multitrack (helpers/mixpad.py, Marko:
+     "once you open the CQ Mixpad, you must be able to locate its Connect button"); then CoreAudio must see
+     "CQ12T - Audio" with 16 in and 16 out. The app in front before is given back.
   2. Live's audio input and output device are the CQ12T: read in Live's own Log.txt ("Audio In Out: Input Device:");
      if not, Live's Settings is opened and Marko is asked by voice to choose CQ12T; the log is watched for 3 minutes
      (Live's binary Preferences.cfg is never patched: MANTRA_MANIFEST ableton-live-audio.md)
@@ -159,17 +162,34 @@ def route(t, kind, typ, n):
 def main():
     say("MACRO Map Channels to Allen & Heath CQ12T" + ("  (dry: nothing is changed)" if DRY else ""))
 
-    # 1. the mixer, on USB, in multitrack
-    m = mixer()
-    if not m:
-        say("1 THE MIXER: no CQ12T on USB. Plug its USB-B into the Mac and switch it on.")
-        say("STOPPED: the CQ12T is not connected"); return 1
-    name, ins, outs = m
-    if ins < CHANNELS or outs < CHANNELS:
-        say(f"1 THE MIXER: {name} is connected with {ins} in and {outs} out: not multitrack. In CQ MixPad, connect, "
-            f"Settings (CONFIG › USB/SD): USB audio to multitrack (16 × 16).")
-        say("STOPPED: the CQ12T is not in multitrack mode"); return 1
-    say(f"1 THE MIXER: {name}, {ins} in, {outs} out: multitrack ✓")
+    # 1. the mixer in multitrack: CQ MixPad says so (and is made to), CoreAudio confirms 16 × 16
+    import mixpad
+    was_front = subprocess.run(["/usr/bin/osascript", "-e", 'tell application "System Events" to get bundle identifier '
+                                'of first process whose frontmost is true'], capture_output=True, text=True).stdout.strip()
+    try:
+        ok, words = mixpad.connect()
+        say("1 THE MIXER: " + words)
+        if not ok:
+            say("STOPPED: " + words); return 1
+        was, now = mixpad.stream_mode("Multitrack" if not DRY else ("Multitrack" if mixpad.lit("Multitrack") else "Stereo"))
+        if now is None:
+            say("STOPPED: CQ MixPad's CONFIG › USB / SD › Stream Mode was not found"); return 1
+        say(f"  CONFIG › USB / SD › Stream Mode: {was}" + (f" → {now}" if was != now else "") + (" ✓" if now == "Multitrack" else ""))
+        if now != "Multitrack":
+            say("STOPPED: the CQ12T is not in multitrack" + (" (dry: not changed)" if DRY else "")); return 1
+    finally:
+        if was_front and was_front != "com.allenheath.CQ.MixPad":
+            subprocess.run(["/usr/bin/open", "-b", was_front], capture_output=True)
+    end = time.time() + 20
+    while True:
+        m = mixer()
+        if m and m[1] >= CHANNELS and m[2] >= CHANNELS:
+            break
+        if time.time() > end:
+            say(f"STOPPED: the Mac sees {m[0] + f' with {m[1]} in, {m[2]} out' if m else 'no CQ12T on USB'} (USB-B to the Mac?)")
+            return 1
+        time.sleep(1)       # the CQ comes back on USB with its new channel count
+    say(f"  the Mac: {m[0]}, {m[1]} in, {m[2]} out ✓")
 
     # Live must be running and AbletonOSC must answer
     if subprocess.run(["/usr/bin/pgrep", "-x", "Live"], capture_output=True).returncode != 0:
