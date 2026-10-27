@@ -11,7 +11,7 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
 
     override init() {
         super.init()
-        MODULES = [A1Module(), MackieModule(), MidiKeysModule()]
+        MODULES = [A1Module(), MackieModule(), MidiKeysModule(), MacrosModule()]
         let saved = SETTINGS.read()["modules"] as? [String: Bool] ?? [:]
         for m in MODULES { on[m.id] = saved[m.id] ?? m.defaultOn }
         let menu = NSMenu(); menu.delegate = self; item.menu = menu

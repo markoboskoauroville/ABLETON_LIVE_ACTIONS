@@ -1,0 +1,227 @@
+"""MACRO: Map Channels to Allen & Heath CQ12T (Marko, 27.10.2026: "When you do that, you need to make sure my mixer is
+in multi-track mode ... Inside Ableton Live, you need to change the input and output source to that mixer. You need to
+assign the first channel to the last channel external output 1 and external output 2, and the same for input. It's
+automatic mapping one by one to the mixer.")
+
+The run, one line printed per step (the app shows every line; the last one is the verdict):
+  1. the CQ12T on USB in multitrack: CoreAudio sees "CQ12T - Audio" with 16 in and 16 out (fewer is not multitrack)
+  2. Live's audio input and output device are the CQ12T: read in Live's own Log.txt ("Audio In Out: Input Device:");
+     if not, Live's Settings is opened and Marko is asked by voice to choose CQ12T; the log is watched for 3 minutes
+     (Live's binary Preferences.cfg is never patched: MANTRA_MANIFEST ableton-live-audio.md)
+  3. track 1 → Ext. Out 1 and Ext. In 1, track 2 → 2, ... up to 16, one by one over AbletonOSC, each read back
+Run: python3 macro_cq12t.py [--dry]   (--dry: checks and reports, changes nothing)
+"""
+import glob, json, os, socket, struct, subprocess, sys, time, urllib.request
+
+DRY = "--dry" in sys.argv
+CQ = "CQ12T"
+CHANNELS = 16
+VOICE = "http://127.0.0.1:8837/speak"
+
+
+def say(s):
+    print(s, flush=True)
+
+
+def speak(text):
+    try:
+        r = urllib.request.Request(VOICE, json.dumps({"text": text}).encode(), {"Content-Type": "application/json"})
+        urllib.request.urlopen(r, timeout=3).read()
+    except Exception:
+        say("  (the voice at :8837 is not on: read this here)")
+
+
+# MARK: OSC, the same few lines as SANTOSHI_CONCERT_MIX tools/osc.py
+
+def pad(b):
+    return b + b"\0" * (4 - len(b) % 4)
+
+
+def enc(addr, *args):
+    tags = "," + "".join("i" if isinstance(a, int) else "f" if isinstance(a, float) else "s" for a in args)
+    out = pad(addr.encode()) + pad(tags.encode())
+    for a in args:
+        out += struct.pack(">i", a) if isinstance(a, int) else struct.pack(">f", a) if isinstance(a, float) else pad(a.encode())
+    return out
+
+
+def dec(b):
+    def rs(i):
+        j = b.index(b"\0", i)
+        return b[i:j].decode(errors="replace"), (j // 4 + 1) * 4
+    addr, i = rs(0)
+    tags, i = rs(i)
+    args = []
+    for t in tags[1:]:
+        if t == "i": args.append(struct.unpack(">i", b[i:i + 4])[0]); i += 4
+        elif t == "f": args.append(struct.unpack(">f", b[i:i + 4])[0]); i += 4
+        elif t == "s": s, i = rs(i); args.append(s)
+        elif t in "TF": args.append(t == "T")
+        elif t == "N": args.append(None)
+    return addr, args
+
+
+# AbletonOSC answers only to UDP 11001; while Ableton Live Actions holds it, its router on 127.0.0.1:11002 passes our
+# messages on and copies the answers back (v4, 24.10.2026)
+S = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+S.settimeout(2)
+LIVE = ("127.0.0.1", 11000)
+try:
+    S.bind(("127.0.0.1", 11001))
+except OSError:
+    S.bind(("127.0.0.1", 0))
+    LIVE = ("127.0.0.1", 11002)
+
+
+def q(addr, *args):
+    S.sendto(enc(addr, *args), LIVE)
+    end = time.time() + 2
+    while time.time() < end:
+        try:
+            a, r = dec(S.recv(65536))
+        except socket.timeout:
+            break
+        if a == addr:
+            return r
+        if a == "/live/error":
+            raise RuntimeError(" ".join(map(str, r)))
+    return None
+
+
+def send(addr, *args):
+    S.sendto(enc(addr, *args), LIVE)
+    time.sleep(0.15)
+
+
+def holder():
+    out = subprocess.run(["/usr/sbin/lsof", "-nP", "-iUDP:11001", "-Fc"], capture_output=True, text=True).stdout
+    return ", ".join(l[1:] for l in out.splitlines() if l.startswith("c")) or "nobody"
+
+
+# MARK: the steps
+
+def mixer():
+    out = subprocess.run(["/usr/sbin/system_profiler", "SPAudioDataType", "-json"], capture_output=True, text=True).stdout
+    for d in json.loads(out or "{}").get("SPAudioDataType", [{}])[0].get("_items", []):
+        if CQ in d.get("_name", ""):
+            return d["_name"], d.get("coreaudio_device_input", 0), d.get("coreaudio_device_output", 0)
+    return None
+
+
+def live_devices():
+    logs = sorted(glob.glob(os.path.expanduser("~/Library/Preferences/Ableton/Live */Log.txt")), key=os.path.getmtime)
+    if not logs:
+        return None, None
+    inp = outp = None
+    with open(logs[-1], errors="replace") as f:
+        for l in f:
+            if "Audio In Out: Input Device:" in l: inp = l.split("Input Device:", 1)[1].strip()
+            if "Audio In Out: Output Device:" in l: outp = l.split("Output Device:", 1)[1].strip()
+    return inp, outp
+
+
+def open_live_settings():
+    subprocess.run(["/usr/bin/open", "-a", "Ableton Live 12 Suite"], capture_output=True)
+    script = ('tell application "System Events" to tell (first process whose bundle identifier is "com.ableton.live") '
+              'to click (first menu item of menu 1 of menu bar item 2 of menu bar 1 whose name starts with "Settings")')
+    return subprocess.run(["/usr/bin/osascript", "-e", script], capture_output=True, text=True).returncode == 0
+
+
+def pick(options, want):
+    # Live names a mono channel "1", or "1" plus the device's label ("15/16 Msdter OUT" is a pair); never a pair here
+    for o in options:
+        if o == want or (o.split(" ")[0] == want and "/" not in o.split(" ")[0]):
+            return o
+    return None
+
+
+def route(t, kind, typ, n):
+    """track t (0-based) → its Ext. Out / Ext. In channel n; returns the channel's name, or why not"""
+    types = q(f"/live/track/get/available_{kind}_routing_types", t)
+    if not types or typ not in types[1:]:
+        return None, f"no {typ} on this track" + (" (a MIDI track)" if kind == "input" else "")
+    if not DRY:
+        send(f"/live/track/set/{kind}_routing_type", t, typ)
+    chans = (q(f"/live/track/get/available_{kind}_routing_channels", t) or [t])[1:]
+    c = pick(chans, str(n))
+    if not c:
+        return None, f"{typ} has no single channel {n} (Live's {'Output' if kind == 'output' else 'Input'} Config: make {n} mono)"
+    if DRY:
+        return c, None
+    send(f"/live/track/set/{kind}_routing_channel", t, c)
+    got = q(f"/live/track/get/{kind}_routing_channel", t)
+    gtype = q(f"/live/track/get/{kind}_routing_type", t)
+    if not got or got[1] != c or not gtype or gtype[1] != typ:
+        return None, f"set, but Live reads back {gtype[1:] if gtype else '?'} {got[1:] if got else '?'}"
+    return c, None
+
+
+def main():
+    say("MACRO Map Channels to Allen & Heath CQ12T" + ("  (dry: nothing is changed)" if DRY else ""))
+
+    # 1. the mixer, on USB, in multitrack
+    m = mixer()
+    if not m:
+        say("1 THE MIXER: no CQ12T on USB. Plug its USB-B into the Mac and switch it on.")
+        say("STOPPED: the CQ12T is not connected"); return 1
+    name, ins, outs = m
+    if ins < CHANNELS or outs < CHANNELS:
+        say(f"1 THE MIXER: {name} is connected with {ins} in and {outs} out: not multitrack. In CQ MixPad, connect, "
+            f"Settings (CONFIG › USB/SD): USB audio to multitrack (16 × 16).")
+        say("STOPPED: the CQ12T is not in multitrack mode"); return 1
+    say(f"1 THE MIXER: {name}, {ins} in, {outs} out: multitrack ✓")
+
+    # Live must be running and AbletonOSC must answer
+    if subprocess.run(["/usr/bin/pgrep", "-x", "Live"], capture_output=True).returncode != 0:
+        say("STOPPED: Ableton Live is not running"); return 1
+    try:
+        n = q("/live/song/get/num_tracks")
+    except RuntimeError as e:
+        n = None; say(f"  AbletonOSC: {e}")
+    if not n:
+        why = (f"port 11001 is held by {holder()} without the router on 11002: switch Ableton Live Actions' A1 on, "
+               f"or stop the other listener") if LIVE[1] == 11002 else "is AbletonOSC Live's Control Surface?"
+        say(f"STOPPED: Live did not answer ({why})"); return 1
+    tracks = n[0]
+
+    # 2. Live's audio device
+    inp, outp = live_devices()
+    if not (inp and CQ in inp and outp and CQ in outp):
+        say(f"2 LIVE'S AUDIO: input {inp or '?'}, output {outp or '?'}: not the CQ12T")
+        if DRY:
+            say("  (dry: Live's Settings would be opened and Marko asked to choose CQ12T)")
+        else:
+            open_live_settings()
+            want = " and ".join(w for w, d in (("Audio Input Device", inp), ("Audio Output Device", outp)) if not (d and CQ in d))
+            speak(f"Marko, Live's Settings is open. On the Audio tab, set {want} to CQ12T.")
+            say(f"  Live's Settings is open: Audio tab, {want} → CQ12T (waiting up to 3 minutes)")
+            end = time.time() + 180
+            while time.time() < end:
+                time.sleep(2)
+                inp, outp = live_devices()
+                if inp and CQ in inp and outp and CQ in outp:
+                    break
+            else:
+                say("STOPPED: Live's audio is still not the CQ12T"); return 1
+    say(f"2 LIVE'S AUDIO: input {inp}, output {outp} ✓")
+
+    # 3. one by one: track N → Ext. Out N and Ext. In N
+    say(f"3 THE CHANNELS: {tracks} tracks in the set, {min(tracks, CHANNELS)} mapped to the CQ's 16")
+    done, problems = 0, []
+    for t in range(min(tracks, CHANNELS)):
+        tname = (q("/live/track/get/name", t) or [t, "?"])[1]
+        o, why_o = route(t, "output", "Ext. Out", t + 1)
+        i, why_i = route(t, "input", "Ext. In", t + 1)
+        say(f"  {t + 1:2} {tname[:24]:24}  out {('Ext. Out ' + o) if o else '✗ ' + why_o}   in {('Ext. In ' + i) if i else '✗ ' + why_i}")
+        if o and i: done += 1
+        else: problems.append(t + 1)
+    if tracks > CHANNELS:
+        say(f"  tracks {CHANNELS + 1}–{tracks} left as they were: the CQ12T has {CHANNELS} channels")
+    verdict = (f"DONE: {done} of {min(tracks, CHANNELS)} tracks on their CQ12T channel" +
+               (f"; not complete: track {', '.join(map(str, problems))}" if problems else "") + (" (dry)" if DRY else ""))
+    say(verdict)
+    return 0 if not problems else 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
