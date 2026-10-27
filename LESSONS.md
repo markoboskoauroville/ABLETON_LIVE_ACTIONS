@@ -18,3 +18,8 @@
   word's centre; a pair's chosen one is the green word (`helpers/mixpad.py lit`). A full-screen space that is not showing
   photographs grey: MixPad leaves full screen and goes to the MacBook Pro screen by Rectangle first.
 - Live keeps the audio device and Input/Output Config per device in its own settings: asked of Marko once, never again.
+- **A check right after Apply reads MixPad before it redraws**: poll a few times (a rename that worked was reported failed).
+- **Store, don't click**: the CQ scene keeps names and input sources; one recall replaces about twenty clicks (30 s for
+  the whole macro). Names written to the CQ must overwrite the scene, or the next recall brings the old ones back.
+- **A factory reset**: MixPad says "Connection lost" (Ok, Connect again), Stream Mode stays Multitrack, inputs go
+  Analogue, names Ip1…, scenes empty, and Live's audio device falls to No Device until the USB comes back.
