@@ -152,3 +152,10 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 (Said after MANTRA_PORTS v2: "fix the port clashing ... central service for all my star applications".)
 **Status:** v14: the A1 wire writes itself into ~/.config/mantra-ports.json as the owner of UDP 11001 and the router of
 11002 (`app/Ports.swift`, a copy of MANTRA_PORTS/Ports.swift).
+
+## 27.10.2026: every output to Main (in the box)
+
+> I'm not hearing it. Use our Ableton Actions application to set every output to main from every channel
+
+**Status:** saved, before code. A macro "Route Every Track to Main (In the Box)": each track's Audio To Main and Audio
+From No Input, one track selected at a time (a change on several selected tracks lands on all), read back.
