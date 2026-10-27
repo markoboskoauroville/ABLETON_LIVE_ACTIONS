@@ -91,3 +91,7 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > please build the process in my Ableton Actions program. We have a new category, which is kind of a pre-recorded macro. There will be a macro name and then the run. This macro name is called "Map Channels to Allen and Heat CQ12T." When you do that, you need to make sure my mixer is in multi-track mode. You can confirm that by connecting and opening the CQ Mixpad, connecting to it, and then seeing the settings. Inside Ableton Live, you need to change the input and output source to that mixer. You need to assign the first channel to the last channel external output 1 and external output 2, and the same for input. It's automatic mapping one by one to the mixer. Please make that action now
 
 **Status:** v6 built and installed: the MACROS section, RUN and CHECK; step 1 (CQ12T 16 × 16, multitrack) checked on the real mixer; steps 2–3 wait for Live's answers (Hammerspoon's Lua A1 holds 11001).
+
+> once you open the CQ Mixpad, you must be able to locate its Connect button. So two checks: if the mixer is listed there in the list, then you can just click Connect and connect to the mixer automatically
+
+**Status:** saved, before code.
