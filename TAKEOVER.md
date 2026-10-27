@@ -22,3 +22,8 @@ The window is in tabs since v8 (Umbrella.tab, kept in live-actions.json), MACROS
 title every 3 s by accessibility; a new title = a set opened → 4 s later `--auto` (MixPad only when the Mac does not see
 16 × 16, tracks already right untouched). AUTO cannot see the CQ's input sources without MixPad: after a factory reset
 press RUN. v12: RUN sets the CQ's inputs 1–10 to USB (`mixpad.set_input_source`), connect() answers "Connection lost".
+
+**27.10.2026, v13.** The mixer side is a CQ scene: `mixpad.recall_scene` / `store_scene` ("Live Multitrack", HOME ›
+SCENES; Recall asks Continue? → OK; Store New in the first empty row, then Rename). RUN recalls it, or sets inputs
+1–10 to USB and stores it when missing; macro_names LIVE → MIXER overwrites it. Stream Mode is a system setting, still
+read and set apart.

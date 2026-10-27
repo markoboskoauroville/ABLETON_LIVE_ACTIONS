@@ -139,4 +139,4 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 > now all inputs and outputs in Ableton Live are set. You can please store this configuration and load it instead of clicking every time
 
-**Status:** saved, before code. Live keeps its device and Input/Output Config itself. The mixer side: a CQ Scene stored once with this setup (names, input sources), recalled by the macro in one step; the setup also kept in the app as a profile file.
+**Status:** v13. Live keeps its device and Input/Output Config itself (nothing to click in Live). The mixer: scene 1 "Live Multitrack" stored in HOME › SCENES with the names and inputs 1–10 from USB; proven by changing input 10 (Analogue, Test1) and recalling: USB and IgrMIC came back. RUN now recalls it (30 s for the whole macro); after a factory reset it sets the inputs and stores the scene by itself; LIVE → MIXER names overwrite the scene.

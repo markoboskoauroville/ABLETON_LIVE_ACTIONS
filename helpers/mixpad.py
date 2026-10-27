@@ -333,8 +333,11 @@ def set_input_name(n, name):
     keys(0, Quartz.kCGEventFlagMaskCommand); keys(51); type_text(name); time.sleep(0.3)
     if not click("Apply"):
         return False
-    time.sleep(0.8)
-    return (input_names(goto=False) or {}).get(n) == name
+    for _ in range(4):                  # MixPad draws the new name a moment after Apply
+        time.sleep(0.8)
+        if (input_names(goto=False) or {}).get(n) == name:
+            return True
+    return False
 
 
 # CONFIG › INPUTS › Input Source: "Analogue" above, the SD | USB half below it (no words); the ST input's icon
@@ -358,6 +361,70 @@ def set_input_source(n, usb=True):
     return a is not None and a != usb
 
 
+# HOME › SCENES: the mixer's own memory (Marko, 27.10.2026: "store this configuration and load it instead of clicking
+# every time"). A scene keeps the inputs' names and sources (proven: Analogue and a new name came back to USB and the
+# old name on Recall). Ten rows "1)" … "10)", the name after the number; Recall asks "Continue?" → OK.
+SCENE = "Live Multitrack"
+
+
+def scenes_page():
+    return click("HOME") and click("SCENES") and bool(find("Mixer Scenes"))
+
+
+def scene_row(name, seen=None):
+    seen = read() if seen is None else seen
+    return next((x for x in seen if x[0].split(")", 1)[-1].strip().lower() == name.lower()), None)
+
+
+def recall_scene(name=SCENE):
+    """True when the scene was there and recalled; None when there is no such scene"""
+    if not scenes_page():
+        return False
+    r = scene_row(name)
+    if not r:
+        return None
+    front(); click_at(r[1], r[2]); time.sleep(0.8)
+    if not click("Recall"):
+        return False
+    time.sleep(1.0)
+    if not click("OK"):
+        return False
+    time.sleep(2.0)
+    return True
+
+
+def store_scene(name=SCENE):
+    """the mixer as it is now kept in the scene of this name: overwritten when it is there, else in the first empty
+    row, then renamed. True when the row reads the name afterwards."""
+    if not scenes_page():
+        return False
+    seen = read(); r = scene_row(name, seen)
+    if r:
+        front(); click_at(r[1], r[2]); time.sleep(0.8)
+        if not click("Overwrite"):
+            return False
+        time.sleep(1.0)
+        if find("OK"): click("OK"); time.sleep(1.0)
+        return bool(scene_row(name))
+    empty = next((x for x in sorted(seen, key=lambda x: x[2]) if x[0].strip().rstrip(")").isdigit() and x[0].strip().endswith(")")), None)
+    if not empty:
+        return False
+    front(); click_at(empty[1] + 150, empty[2]); time.sleep(0.8)
+    if not click("Store New"):
+        return False
+    time.sleep(1.2)
+    if not click("Rename"):
+        return False
+    time.sleep(1.0)
+    f = find("Enter scene name")
+    if not f:
+        return False
+    w = window(); click_at(f[1] - 0.03 * w[3], f[2] + 0.07 * w[4]); time.sleep(0.3)
+    keys(0, Quartz.kCGEventFlagMaskCommand); keys(51); type_text(name); time.sleep(0.3)
+    click("Ok"); time.sleep(1.0)
+    return bool(scene_row(name))
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "words"
     if cmd == "open":
@@ -377,6 +444,10 @@ if __name__ == "__main__":
         print(set_input_name(int(sys.argv[2]), sys.argv[3]))
     elif cmd == "source":
         print(set_input_source(sys.argv[2] if sys.argv[2] == "ST" else int(sys.argv[2]), sys.argv[3] != "analogue"))
+    elif cmd == "recall":
+        print(recall_scene(" ".join(sys.argv[2:]) or SCENE))
+    elif cmd == "store":
+        print(store_scene(" ".join(sys.argv[2:]) or SCENE))
     elif cmd == "lit":
         print(lit(" ".join(sys.argv[2:])))
     elif cmd == "shot":

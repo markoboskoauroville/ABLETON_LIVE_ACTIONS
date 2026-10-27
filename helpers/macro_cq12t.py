@@ -203,8 +203,17 @@ def main():
         if now != "Multitrack":
             say("STOPPED: the CQ12T is not in multitrack" + (" (dry: not changed)" if DRY else "")); return 1
         # digital in: the CQ's inputs 1–10 play what Live sends them (Marko, 27.10.2026: "to be digital in and out for
-        # Ableton"; a factory reset leaves them Analogue)
-        if mixpad.inputs_page():
+        # Ableton"). Stored once in the mixer's scene "Live Multitrack" and recalled after that ("store this
+        # configuration and load it instead of clicking every time"); set by hand and stored only when the scene is
+        # not there (a factory reset empties the scenes).
+        r = None if DRY else mixpad.recall_scene()
+        if r:
+            say(f"  HOME › SCENES: \"{mixpad.SCENE}\" recalled (names and inputs 1–{mixpad.CQ_INPUTS} from USB) ✓")
+        elif mixpad.inputs_page():
+            if DRY:
+                mixpad.scenes_page()
+                say(f"  HOME › SCENES: \"{mixpad.SCENE}\" " + ("is there: RUN recalls it" if mixpad.scene_row(mixpad.SCENE) else "is not there: RUN sets the inputs and stores it"))
+                mixpad.inputs_page()
             bad = []
             for i in range(1, mixpad.CQ_INPUTS + 1):
                 if DRY:
@@ -214,6 +223,9 @@ def main():
                     bad.append(i)
             say(f"  CONFIG › INPUTS › Input Source: inputs 1–{mixpad.CQ_INPUTS} " +
                 ("from USB ✓" if not bad else ("still Analogue: " if DRY else "✗ not set to USB: ") + ", ".join(map(str, bad))))
+            if not DRY and not bad:
+                ok = mixpad.store_scene()
+                say(f"  HOME › SCENES: stored as \"{mixpad.SCENE}\"" + (" ✓ (next time one recall)" if ok else " ✗ (not stored)"))
         else:
             say("  ✗ CQ MixPad's CONFIG › INPUTS was not found: the input sources are not checked")
     finally:

@@ -57,6 +57,10 @@ def main():
                 say(f"  {i:2}  Live {live[i]!r:18} → CQ {cq[i] or '—'}" + (f" → {new}" if new and new != cq[i] else "  (same)"))
             else:
                 say(f"  {i:2}  Live {live[i]!r:18}  CQ {cq[i] or '—':8}  (to the CQ it would be {mixpad.cq_name(live[i])})")
+        # the names kept in the mixer's scene too, or the next recall would bring the old ones back
+        if TO_MIXER and changed:
+            ok = mixpad.store_scene()
+            say(f"  HOME › SCENES: \"{mixpad.SCENE}\" " + ("overwritten with the new names ✓" if ok else "✗ not stored: a recall would bring the old names back"))
     finally:
         if was_front and was_front != "com.allenheath.CQ.MixPad":
             subprocess.run(["/usr/bin/open", "-b", was_front], capture_output=True)
