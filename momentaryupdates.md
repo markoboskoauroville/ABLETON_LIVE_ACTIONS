@@ -144,3 +144,11 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > no more running, please. Close this project build something you can build without me
 
 **Status:** saved; the project closed at v13 (27.10.2026). Nothing more is run on the Mac for it.
+
+## 27.10.2026: onto the Mac's port registry (MANTRA_PORTS v2)
+
+> please do rebuild and restart
+
+(Said after MANTRA_PORTS v2: "fix the port clashing ... central service for all my star applications".)
+**Status:** v14: the A1 wire writes itself into ~/.config/mantra-ports.json as the owner of UDP 11001 and the router of
+11002 (`app/Ports.swift`, a copy of MANTRA_PORTS/Ports.swift).

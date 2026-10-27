@@ -42,6 +42,9 @@ final class A1Wire {
             return
         }
         fd = s; state = "listening"
+        // the one owner of 11001, written in the Mac's port registry (MANTRA_PORTS v2, 27.10.2026): `mantra-ports
+        // check` names any stranger on it and sends the others to the router
+        Ports.record("abletonosc-answers", A1Wire.ANSWER, udp: true)
         let src = DispatchSource.makeReadSource(fileDescriptor: s, queue: .main)
         src.setEventHandler { [weak self] in self?.read() }
         src.resume(); source = src
@@ -53,6 +56,7 @@ final class A1Wire {
         var a = sockaddr_in(); a.sin_family = sa_family_t(AF_INET); a.sin_port = A1Wire.ROUTER.bigEndian; a.sin_addr.s_addr = inet_addr("127.0.0.1")
         guard withUnsafePointer(to: &a, { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(s, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) } }) == 0 else { close(s); return }
         rfd = s
+        Ports.record("abletonosc-router", A1Wire.ROUTER, udp: true)
         let src = DispatchSource.makeReadSource(fileDescriptor: s, queue: .main)
         src.setEventHandler { [weak self] in self?.routerRead() }
         src.resume(); rsource = src
