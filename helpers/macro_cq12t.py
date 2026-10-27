@@ -151,6 +151,9 @@ def route(t, kind, typ, n):
     if not types or typ not in types[1:]:
         return None, f"no {typ} on this track" + (" (Live's input device is not set)" if kind == "input" else "")
     if not DRY:
+        # one track selected, this one: with several selected, Live gives the change to all of them (27.10.2026: the
+        # first run left every track on 10)
+        send("/live/view/set/selected_track", t)
         send(f"/live/track/set/{kind}_routing_type", t, typ)
     chans = (q(f"/live/track/get/available_{kind}_routing_channels", t) or [t])[1:]
     c = pick(chans, str(n))
@@ -274,6 +277,17 @@ def main():
         say(f"  {t + 1:2} {tname[:24]:24}  out {('Ext. Out ' + o) if o else '✗ ' + why_o}   in {('Ext. In ' + i) if i else '✗ ' + why_i}")
         if o and i: done += 1
         else: problems.append(t + 1)
+    # the whole set read back once more at the end: a change that spilled onto another track shows here
+    if not DRY:
+        time.sleep(0.5)
+        for t in range(min(tracks, CHANNELS)):
+            o = (q("/live/track/get/output_routing_channel", t) or [t, "?"])[1]
+            i = (q("/live/track/get/input_routing_channel", t) or [t, "?"])[1]
+            if pick([o], str(t + 1)) is None or pick([i], str(t + 1)) is None:
+                say(f"  ✗ read back at the end: track {t + 1} is on out {o}, in {i}")
+                if t + 1 not in problems: problems.append(t + 1); done -= 1
+        if not problems:
+            say(f"  the whole set read back: tracks 1–{min(tracks, CHANNELS)} each on its own channel ✓")
     if tracks > CHANNELS:
         say(f"  tracks {CHANNELS + 1}–{tracks} left as they were: the CQ12T has {CHANNELS} channels")
     verdict = (f"DONE: {done} of {min(tracks, CHANNELS)} tracks on their CQ12T channel" +
