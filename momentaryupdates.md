@@ -117,3 +117,9 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 > please put macros at the top because this is something I'm going to use. Or even better, organize the whole user interface in tabs, please
 
 **Status:** v8: tabs under the first row, one per module (a dot: on or off), MACROS first, the tab last chosen comes back; checked by a window screenshot at 640 wide on the MacBook Pro screen.
+
+> done. I did that switch
+
+> when we finish, can this configuration be saved inside this application actions and then just applied automatically, so I don't need to go through this every time? And maybe all mono and all audio can be selected for every possible scenery What do you suggest? We only work with mono channels? That's all we need.
+
+**Status:** saved. Found on the first real run: with several tracks selected in Live, a routing change through AbletonOSC lands on all of them (the set ended with every track on 10); the macro now selects each track alone before routing it and reads the whole set back at the end.
