@@ -159,3 +159,9 @@ Arrangement switch at Live's start is in Opening and Closing v6; the AbletonOSC 
 
 **Status:** v15, tested on Santoshi Concert Full Mix: 9 of 9 to Main, read back. A macro "Route Every Track to Main (In the Box)": each track's Audio To Main and Audio
 From No Input, one track selected at a time (a change on several selected tracks lands on all), read back.
+
+## 30.10.2026: PERMISSIONS at the top right
+
+> please make this in every application that needs some permission. If permissions are not set, it needs to have text in the top right: "Permissions." Then I click on it, and it opens me directly to my settings page where I need to set permissions.
+
+(MANTRA_MANIFEST modules/swift-apps.md, "PERMISSIONS at the top right while one is missing".) **Status:** requested 30.10.2026, to build.
