@@ -345,7 +345,8 @@ final class KSEngine: ObservableObject {
         guard !running else { return }
         running = true
         load()
-        if !dry { _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary) }
+        // v16: never a request at login (--login); the PERMISSIONS word waits in the window
+        if !dry && !CommandLine.arguments.contains("--login") { _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary) }
         midiStart()
         timers = [
             Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.trusted = AXIsProcessTrusted() },

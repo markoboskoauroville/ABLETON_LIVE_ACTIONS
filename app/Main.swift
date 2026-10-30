@@ -2,6 +2,7 @@
 // "Same principle as Davinci Resolve: we need to create Ableton Live actions. Right now everything what's related to
 // Ableton Live can be under the same roof." The modules (Module.swift) are switched on and off here; each has its
 // section in the window, its rows in the menu-bar menu, and its hot keys, live only while Live is in front.
+// v16 (30.10.2026, Marko: "If permissions are not set, it needs to have text in the top right"): PERMISSIONS on the ON / OFF row.
 import SwiftUI
 import AppKit
 
@@ -123,6 +124,7 @@ struct SettingsView: View {
             Word(text: "OFF", on: false) { NSApp.terminate(nil) }
             Spacer()
             Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
+            PermissionsWord()                           // v16: only while a permission is missing (Permissions.swift)
             CloseX()
         }
         .padding(.leading, 24).padding(.trailing, 10).padding(.vertical, 8)

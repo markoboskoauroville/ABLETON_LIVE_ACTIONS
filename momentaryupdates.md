@@ -164,4 +164,4 @@ From No Input, one track selected at a time (a change on several selected tracks
 
 > please make this in every application that needs some permission. If permissions are not set, it needs to have text in the top right: "Permissions." Then I click on it, and it opens me directly to my settings page where I need to set permissions.
 
-(MANTRA_MANIFEST modules/swift-apps.md, "PERMISSIONS at the top right while one is missing".) **Status:** requested 30.10.2026, to build.
+(MANTRA_MANIFEST modules/swift-apps.md, "PERMISSIONS at the top right while one is missing".) **Status:** built 30.10.2026, v16: app/Permissions.swift; the app needs Accessibility only (event taps, posted keys and clicks, AX reads of Live; MIDI needs none). PERMISSIONS (amber, monospaced bold) on the ON / OFF row between the version and the ✕, only while it is missing; a click asks once through the system and opens Privacy_Accessibility. Re-read every 2 s, the row redrawn only on a change. MIDI KEYS no longer asks at --login. Was not running, so not started.
