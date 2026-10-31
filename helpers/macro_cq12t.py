@@ -69,42 +69,22 @@ def dec(b):
     return addr, args
 
 
-# AbletonOSC answers only to UDP 11001; while Ableton Live Actions holds it, its router on 127.0.0.1:11002 passes our
-# messages on and copies the answers back (v4, 24.10.2026)
-S = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-S.settimeout(2)
-LIVE = ("127.0.0.1", 11000)
-try:
-    S.bind(("127.0.0.1", 11001))
-except OSError:
-    S.bind(("127.0.0.1", 0))
-    LIVE = ("127.0.0.1", 11002)
+# USE, LET GO (Marko, 31.10.2026): a question takes the shared turn on Live's answer port and lets it go
+# (helpers/liveosc.py); this script no longer keeps 11001 while it runs. LIVE stays for the callers' messages.
+import liveosc
+LIVE = liveosc.LIVE
 
 
 def q(addr, *args):
-    """the answer to this address, and for a track question to this track (a late answer to the track before must
-    never be taken for this one: every track once read "Ext. Out 1")"""
-    while True:                        # what is left over from earlier questions
-        S.setblocking(False)
-        try: S.recv(65536)
-        except (BlockingIOError, OSError): break
-    S.setblocking(True); S.settimeout(2)
-    S.sendto(enc(addr, *args), LIVE)
-    end = time.time() + 2
-    while time.time() < end:
-        try:
-            a, r = dec(S.recv(65536))
-        except socket.timeout:
-            break
-        if a == addr and (not args or not isinstance(args[0], int) or (r and r[0] == args[0])):
-            return r
-        if a == "/live/error":
-            raise RuntimeError(" ".join(map(str, r)))
-    return None
+    """the answer to this address (for a track question, to this track), or None"""
+    try:
+        return liveosc.ask(addr, *args, wait=2.0)
+    except (TimeoutError, OSError) as e:
+        print(f"OSC: {e}", file=sys.stderr); return None
 
 
 def send(addr, *args):
-    S.sendto(enc(addr, *args), LIVE)
+    liveosc.tell(addr, *args)
     time.sleep(0.15)
 
 
