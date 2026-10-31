@@ -173,3 +173,11 @@ From No Input, one track selected at a time (a change on several selected tracks
 > When you are done with my Ableton Live, please close it.No need to save the project.Only save the presets of the plugin for next time usage. You can write Enhance Voice Mantra.
 
 - After the export: save the plug-in chain on the voice track as a preset "Enhance Voice Mantra", then quit Live without saving the set. **Status:** waiting
+
+## 31.10.2026: Live's OSC port shared: use, let go
+> "Also, please improve my port router for OSC inside Ableton Live. So, if there are two sessions accessing at the same
+> time, one cannot block the other. If one is not using it, you can use it. It's not permanent block. You use it and you
+> let go. Always like this. Use, let go. Use, let go. So there is no this kind This must not happen anymore"
+
+(Seen that day: MANTRA_STAR a1_ears.py held UDP 11001, AbletonOSC's answer port, for good, so a session exporting a
+voice from Live got no answer.) **Status:** pending.
