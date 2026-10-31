@@ -187,3 +187,10 @@ bound), helpers/macro_*.py through liveosc, ABLETON_TEACHER live.py, ABLETON_COM
 repo), CQ_MIXPAD_TUTORIAL v23, OPENING_AND_CLOSING v11, OXI_CONTROLLER v30, SANTOSHI tools; MANTRA_MACKIE and
 STEM_SEPARATION never bound it. Proven with this app and A1's ears running: 100 questions from two more programs, all
 answered, 11001 free at rest.
+
+## 31.10.2026: ON, OFF and TOP in every application
+
+Marko, 31.10.2026: *"Please go to all the interface of my applications. Each needs to have the same user interface
+elements. On, off and top. Please build it in every application."*
+
+Status: pending.
