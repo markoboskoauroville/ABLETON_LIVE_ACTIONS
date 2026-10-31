@@ -1,8 +1,8 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..eff8080 100644
+index 6c058f6..88948cf 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
-@@ -18,3 +18,153 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -18,3 +18,165 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -156,3 +156,15 @@ index 6c058f6..eff8080 100644
 +            song.view.selected_track = track
 +            return (idx, len(track.arrangement_clips))
 +        self.osc_server.add_handler("/live/arrangement/audio_clip", arrangement_audio_clip)
++
++        #   /live/arrangement/warp <track> [0|1]   the warp state of every clip on the track's timeline: answers
++        #   (clips, warping, warp_mode, sample_rate-free length) and with 0/1 switches warping off/on (Mantra, 31.10.2026:
++        #   speech clips play chopped in Beats warp; a voice is never warped)
++        def arrangement_warp(params) -> Tuple:
++            track = Live.Application.get_application().get_document().tracks[int(params[0])]
++            out = []
++            for c in track.arrangement_clips:
++                if len(params) > 1 and c.is_audio_clip: c.warping = bool(int(params[1]))
++                out += [int(c.warping) if c.is_audio_clip else -1, int(c.warp_mode) if c.is_audio_clip else -1]
++            return tuple([len(track.arrangement_clips)] + out)
++        self.osc_server.add_handler("/live/arrangement/warp", arrangement_warp)
