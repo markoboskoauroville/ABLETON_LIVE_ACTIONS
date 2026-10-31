@@ -180,4 +180,8 @@ From No Input, one track selected at a time (a change on several selected tracks
 > let go. Always like this. Use, let go. Use, let go. So there is no this kind This must not happen anymore"
 
 (Seen that day: MANTRA_STAR a1_ears.py held UDP 11001, AbletonOSC's answer port, for good, so a session exporting a
-voice from Live got no answer.) **Status:** pending.
+voice from Live got no answer.) **Status:** the rule and its code are done and proven (helpers/liveosc.py; MANTRA_STAR
+a1_ears.py; two programs, 100 questions at once, all answered, the port free at rest; manifest ableton-live-audio.md).
+**Not yet converted** (they still keep 11001 the old way): this app's A1Wire.swift and MackieIO.swift (start_listen →
+polls), helpers/macro_*.py, ABLETON_TEACHER live.py, ABLETON_COMMAND_GUIDE act.py, MANTRA_MACKIE live.lua,
+CQ_MIXPAD_TUTORIAL, OPENING_AND_CLOSING, OXI_CONTROLLER, STEM_SEPARATION, SANTOSHI_CONCERT_MIX tools. Next, this app first.
