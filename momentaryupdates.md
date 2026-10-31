@@ -182,6 +182,8 @@ From No Input, one track selected at a time (a change on several selected tracks
 (Seen that day: MANTRA_STAR a1_ears.py held UDP 11001, AbletonOSC's answer port, for good, so a session exporting a
 voice from Live got no answer.) **Status:** the rule and its code are done and proven (helpers/liveosc.py; MANTRA_STAR
 a1_ears.py; two programs, 100 questions at once, all answered, the port free at rest; manifest ableton-live-audio.md).
-**Not yet converted** (they still keep 11001 the old way): this app's A1Wire.swift and MackieIO.swift (start_listen →
-polls), helpers/macro_*.py, ABLETON_TEACHER live.py, ABLETON_COMMAND_GUIDE act.py, MANTRA_MACKIE live.lua,
-CQ_MIXPAD_TUTORIAL, OPENING_AND_CLOSING, OXI_CONTROLLER, STEM_SEPARATION, SANTOSHI_CONCERT_MIX tools. Next, this app first.
+**Done everywhere (31.10.2026):** this app v17 (A1Wire takes turns, the router gone; MackieIO reads Live's log and never
+bound), helpers/macro_*.py through liveosc, ABLETON_TEACHER live.py, ABLETON_COMMAND_GUIDE act.py (now the Teacher's own
+repo), CQ_MIXPAD_TUTORIAL v23, OPENING_AND_CLOSING v11, OXI_CONTROLLER v30, SANTOSHI tools; MANTRA_MACKIE and
+STEM_SEPARATION never bound it. Proven with this app and A1's ears running: 100 questions from two more programs, all
+answered, 11001 free at rest.

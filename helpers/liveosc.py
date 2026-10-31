@@ -109,7 +109,6 @@ class Turn:
                     self.f.close(); raise TimeoutError("no turn on Live's OSC in %.0f s" % TURN)
                 time.sleep(0.01)
         self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         end = time.time() + WAIT
         while True:
             try:

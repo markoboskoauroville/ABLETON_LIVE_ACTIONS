@@ -29,3 +29,14 @@ wire holds 11001 and now also listens on **127.0.0.1:11002**: any other app send
 router passes it to Live from the 11001 socket, and every answer is given to A1 and copied to every app heard from in
 the last two minutes. The window's A1 line says how many apps it serves. The router runs while A1 is on. A client:
 bind any port, send to 11002, read the answers for your own addresses (SANTOSHI_CONCERT_MIX `tools/osc.py`).
+
+## Live's OSC: USE, LET GO (v17, 31.10.2026)
+
+The OSC router on 11002 (v4) is gone. Marko: *"You use it and you let go. Always like this."* No program keeps Live's
+answer port 11001: a question takes the shared turn (flock `~/.config/liveosc.lock`), binds 11001, reads its answer and
+lets go; orders go straight to 11000. The code: `app/LiveTurn.swift` (copied into every Swift app that talks to Live),
+`helpers/liveosc.py` (Python), MANTRA_STAR `a1_ears.py` (Lua through Hammerspoon). `tests/fake_abletonosc.py` stands in
+for Live when it is closed. Proven: with this app and A1's ears running, two more programs asked 50 questions each at
+once, all 100 answered, nothing on 11001 at rest. Converted the same day: CQ MixPad Tutorial v23, Opening and Closing
+v11, OXI v30, the Teacher, the Command Guide, the Santoshi tools; already sharing: Mantra Mackie and Stem Separation
+(they never bound it).

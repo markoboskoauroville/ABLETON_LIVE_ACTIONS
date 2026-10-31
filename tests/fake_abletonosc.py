@@ -5,6 +5,7 @@ AbletonOSC listens on UDP 11000 and answers to the asker's address on port 11001
 values, so USE, LET GO (helpers/liveosc.py, manifest ableton-live-audio.md) can be tested with Live closed:
 
     /live/test                         -> ["ok"]
+    /live/application/view/arranger    -> [True]
     /live/song/get/num_tracks          -> [3]
     /live/song/get/tempo               -> [120.0]
     /live/song/get/is_playing          -> [False]
@@ -50,10 +51,16 @@ while True:
     print("heard", a, args, flush=True)
     if a == "/live/test":
         reply(host, a, ["ok"])
+    elif a == "/live/application/view/arranger":
+        reply(host, a, [True])
     elif a.startswith("/live/song/start_listen/"):
         listeners.add(host)
     elif a == "/live/song/get/num_tracks":
         reply(host, a, [3])
+    elif a == "/live/song/get/track_names":
+        reply(host, a, ["Track 0", "Track 1", "Track 2"])
+    elif a == "/live/song/get/current_song_time":
+        reply(host, a, [948.0])
     elif a == "/live/song/get/tempo":
         reply(host, a, [120.0])
     elif a == "/live/song/get/is_playing":
