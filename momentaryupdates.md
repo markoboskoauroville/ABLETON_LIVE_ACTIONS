@@ -169,3 +169,7 @@ From No Input, one track selected at a time (a change on several selected tracks
 > Please turn off the wrap short samples forever.in the settings
 
 - Live Settings: warping of new samples off for good (Auto-Warp Long Samples off; Loop/Warp Short Samples: no warp). **Status:** guided, Marko's hand in Live's Settings
+
+> When you are done with my Ableton Live, please close it.No need to save the project.Only save the presets of the plugin for next time usage. You can write Enhance Voice Mantra.
+
+- After the export: save the plug-in chain on the voice track as a preset "Enhance Voice Mantra", then quit Live without saving the set. **Status:** waiting
