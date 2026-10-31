@@ -1,8 +1,8 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..37beda4 100644
+index 6c058f6..eff8080 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
-@@ -18,3 +18,138 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -18,3 +18,153 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -27,7 +27,7 @@ index 6c058f6..37beda4 100644
 +            application = Live.Application.get_application()
 +            browser = application.browser
 +            song = application.get_document()
-+            song.view.selected_track = song.tracks[track_index]
++            song.view.selected_track = (song.master_track if track_index == 99 else song.return_tracks[track_index - 100] if track_index >= 100 else song.tracks[track_index])
 +            for root in browser.plugins.children:
 +                hit = find_loadable(root, name)
 +                if hit is not None:
@@ -80,7 +80,7 @@ index 6c058f6..37beda4 100644
 +            name, track_index = str(params[0]), int(params[1])
 +            application = Live.Application.get_application()
 +            song = application.get_document()
-+            song.view.selected_track = song.tracks[track_index]
++            song.view.selected_track = (song.master_track if track_index == 99 else song.return_tracks[track_index - 100] if track_index >= 100 else song.tracks[track_index])
 +            for item in application.browser.instruments.children:
 +                if item.is_loadable and item.name.lower() == name.lower():
 +                    application.browser.load_item(item)
@@ -105,7 +105,7 @@ index 6c058f6..37beda4 100644
 +            uri, track_index = str(params[0]), int(params[1])
 +            application = Live.Application.get_application()
 +            song = application.get_document()
-+            song.view.selected_track = song.tracks[track_index]
++            song.view.selected_track = (song.master_track if track_index == 99 else song.return_tracks[track_index - 100] if track_index >= 100 else song.tracks[track_index])
 +            def walk(item, depth):
 +                if item.uri == uri: return item
 +                if depth > 5: return None
@@ -141,3 +141,18 @@ index 6c058f6..37beda4 100644
 +                c.color_index = ((j // 14) % 5) * 14 + (j * 5) % 14
 +            return (len(clips),)
 +        self.osc_server.add_handler("/live/arrangement/rainbow", arrangement_rainbow)
++
++        #   /live/arrangement/audio_clip <file> [name] [position]   a new audio track at the end of the set, named, with the
++        #   file on the Arrangement timeline at <position> beats (Live 12 Track.create_audio_clip). Answers the track index.
++        #   Mantra, 31.10.2026 (Marko: "open it in Ableton Live in the timeline and let me put the effects on it")
++        def arrangement_audio_clip(params) -> Tuple:
++            song = Live.Application.get_application().get_document()
++            song.create_audio_track(-1)
++            idx = len(song.tracks) - 1
++            track = song.tracks[idx]
++            if len(params) > 1 and str(params[1]): track.name = str(params[1])
++            track.create_audio_clip(str(params[0]), float(params[2]) if len(params) > 2 else 0.0)
++            Live.Application.get_application().view.show_view("Arranger")
++            song.view.selected_track = track
++            return (idx, len(track.arrangement_clips))
++        self.osc_server.add_handler("/live/arrangement/audio_clip", arrangement_audio_clip)

@@ -10,3 +10,5 @@ then send `/live/api/reload` (no Live restart). The handlers: `/live/application
 uses it at every start of Live), `/live/arrangement/midi_clip`, `/live/arrangement/add_notes`, `/live/arrangement/clear`,
 `/live/arrangement/rainbow <track> [offset]`, `/live/application/browser/load_plugin`, `…/load_instrument`,
 `…/list_plugins`, `…/load_uri`. Described in MANTRA_MANIFEST modules/ableton-live-audio.md.
+
+- `/live/arrangement/audio_clip <file> [name] [position]`: a new audio track at the end of the set, named, the file on the Arrangement timeline (Live 12 Track.create_audio_clip); answers (track index, clips). 31.10.2026, the Gabrijela sample for Marko's effects.
