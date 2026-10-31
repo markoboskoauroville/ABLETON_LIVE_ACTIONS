@@ -1,8 +1,8 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..88948cf 100644
+index 6c058f6..0d47a89 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
-@@ -18,3 +18,165 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -18,3 +18,167 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -151,7 +151,9 @@ index 6c058f6..88948cf 100644
 +            idx = len(song.tracks) - 1
 +            track = song.tracks[idx]
 +            if len(params) > 1 and str(params[1]): track.name = str(params[1])
-+            track.create_audio_clip(str(params[0]), float(params[2]) if len(params) > 2 else 0.0)
++            clip = track.create_audio_clip(str(params[0]), float(params[2]) if len(params) > 2 else 0.0)
++            # unwarped: Live warps a new clip in Beats mode at the set's tempo, which chops speech (31.10.2026)
++            for c in track.arrangement_clips: c.warping = False
 +            Live.Application.get_application().view.show_view("Arranger")
 +            song.view.selected_track = track
 +            return (idx, len(track.arrangement_clips))
