@@ -193,4 +193,10 @@ answered, 11001 free at rest.
 Marko, 31.10.2026: *"Please go to all the interface of my applications. Each needs to have the same user interface
 elements. On, off and top. Please build it in every application."*
 
-Status: pending.
+Status, 31.10.2026: done as **v18**. The first row keeps its own order (ABLETON LIVE ACTIONS ON OFF … v18 TOP,
+PERMISSIONS while missing, ✕): TOP added (green = the window floats above every other window, NSWindow.level =
+.floating; grey = normal; remembered in UserDefaults "onTop" and applied when the window appears). Every Word, the ✕ and
+PERMISSIONS are now Accessibility buttons; the first row's carry the fixed identifiers `off`, `top`, `permissions`,
+`close` (a module's own ON / OFF carry none, so `off` is always the app's). Checked: built, installed; v17 (pid 65874,
+idle, Live not running) quit through its menu's Quit, v18 opened with open -g (pid 97664); window captured by id at its
+minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 3 then 0).

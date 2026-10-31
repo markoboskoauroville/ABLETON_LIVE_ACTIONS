@@ -4,7 +4,7 @@ import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 
-let VERSION = 17
+let VERSION = 18
 let RELEASES = "https://github.com/markoboskoauroville/ABLETON_LIVE_ACTIONS/releases/latest"
 let BUNDLE = "com.ableton.live"
 let PYTHON = NSHomeDirectory() + "/.pyenv/versions/3.10.14/bin/python3"
@@ -22,10 +22,30 @@ let INK = Color(red: 0x0B/255, green: 0x0D/255, blue: 0x10/255)
 
 struct Word: View {
     let text: String; let on: Bool; let action: () -> Void
+    // v18: every word an Accessibility button (MANTRA_MANIFEST swift-apps.md, 31.10.2026); the first row's words carry
+    // the fixed identifiers ("off", "top"), a module's words none, so a build's `off` is always the app's OFF
+    var id: String? = nil
+    var value: String? = nil
     var body: some View {
         Text(text).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(on ? GREEN : GREY)
             .padding(.horizontal, 6).padding(.vertical, 4).contentShape(Rectangle()).onTapGesture(perform: action)
+            .axButton(text.capitalized, id: id ?? "", value: value ?? (on ? "on" : "off")) { DispatchQueue.main.async(execute: action) }
     }
+}
+extension View {
+    func axButton(_ label: String, id: String, value: String? = nil, _ action: @escaping () -> Void) -> some View {
+        accessibilityElement(children: .ignore)
+            .accessibilityLabel(label)
+            .accessibilityIdentifier(id)
+            .accessibilityValue(value ?? "")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(.default, action)
+    }
+}
+// TOP (Marko, 31.10.2026: "Each needs to have the same user interface elements. On, off and top."): green = the
+// window stays above every other window; remembered in UserDefaults "onTop" and applied at launch
+func floatWindows(_ on: Bool) {
+    for w in NSApp.windows where w.title.hasPrefix("Ableton Live Actions") { w.level = on ? .floating : .normal }
 }
 // ✕, the window's close at its far upper-right corner (Marko, 19.10.2026: "please unify the position of the close
 // button on every application. It's far upper right corner. There is X to close the dialog in every dialog, same").
@@ -38,6 +58,7 @@ struct CloseX: View {
             .frame(width: 28, height: 28).contentShape(Rectangle())
             .background(WindowReader { window = $0 })
             .onTapGesture { if let a = action { a() } else { (window ?? NSApp.keyWindow)?.performClose(nil) } }
+            .axButton("Close window", id: "close") { if let a = action { a() } else { (window ?? NSApp.keyWindow)?.performClose(nil) } }
             .help("close this window; the app stays on")
     }
 }

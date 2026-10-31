@@ -113,6 +113,7 @@ struct TabRow: View {
 
 struct SettingsView: View {
     @ObservedObject var u: Umbrella
+    @AppStorage("onTop") private var onTop = false
     var body: some View {
         VStack(spacing: 0) {
         // the first row: the app ON / OFF, ✕ at the far right (MANTRA_MANIFEST swift-apps.md, 19.10.2026). Marko: "In
@@ -121,9 +122,12 @@ struct SettingsView: View {
         HStack(spacing: 0) {
             Text("ABLETON LIVE ACTIONS").font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(.white).padding(.trailing, 6)
             Word(text: "ON", on: true) {}
-            Word(text: "OFF", on: false) { NSApp.terminate(nil) }
+            Word(text: "OFF", on: false, action: { NSApp.terminate(nil) }, id: "off")
             Spacer()
             Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
+            // v18, TOP (Marko, 31.10.2026: "On, off and top. Please build it in every application.")
+            Word(text: "TOP", on: onTop, action: { onTop.toggle(); floatWindows(onTop) }, id: "top")
+                .help("Always on top: green, the window stays above every other window")
             PermissionsWord()                           // v16: only while a permission is missing (Permissions.swift)
             CloseX()
         }
@@ -155,6 +159,7 @@ struct SettingsView: View {
         }
         .frame(minWidth: 640, idealWidth: 820, maxWidth: .infinity, minHeight: 480, idealHeight: 820, maxHeight: .infinity)
         .background(INK).preferredColorScheme(.dark)
+        .onAppear { DispatchQueue.main.async { floatWindows(onTop) } }
     }
 }
 

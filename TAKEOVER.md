@@ -27,3 +27,9 @@ press RUN. v12: RUN sets the CQ's inputs 1–10 to USB (`mixpad.set_input_source
 SCENES; Recall asks Continue? → OK; Store New in the first empty row, then Rename). RUN recalls it, or sets inputs
 1–10 to USB and stores it when missing; macro_names LIVE → MIXER overwrites it. Stream Mode is a system setting, still
 read and set apart.
+
+## v18, 31.10.2026: TOP
+
+TOP on the first row between the version and PERMISSIONS / ✕ (UserDefaults "onTop", NSWindow.level .floating). `Word`
+(Common.swift) is an Accessibility button; give it `id:` only on the first row (`off`, `top`), never in a module, so a
+build's relaunch presses the app's OFF and not a module's. ✕ is `close`, PERMISSIONS `permissions`.
