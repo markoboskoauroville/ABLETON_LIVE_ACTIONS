@@ -13,3 +13,5 @@ uses it at every start of Live), `/live/arrangement/midi_clip`, `/live/arrangeme
 
 - `/live/arrangement/audio_clip <file> [name] [position]`: a new audio track at the end of the set, named, the file on the Arrangement timeline (Live 12 Track.create_audio_clip); answers (track index, clips). 31.10.2026, the Gabrijela sample for Marko's effects.
 - `/live/arrangement/warp <track> [0|1]`: the warp state of the clips on a track's timeline (count, then warping and warp mode per clip); with 0/1 switches warping off/on. 31.10.2026: the Gabrijela speech clip played "skipping" because Live had warped it in Beats mode at 120 BPM; a voice clip is never warped. `audio_clip` should place speech unwarped.
+- `/live/arrangement/clip_info <track>`: the first audio clip on a track's timeline: (track, file path, start in beats, start marker, end marker, warping, muted). 7.11.2026, Sync Track 2 to Track 1.
+- `/live/arrangement/clip_mute <track> <0|1>`: every clip on the track's timeline deactivated (1) or active (0); the reference stays. 7.11.2026.

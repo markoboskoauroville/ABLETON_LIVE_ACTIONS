@@ -26,11 +26,20 @@ let MACROS = [
           buttons: [("MIXER → LIVE", ["--to-live"]), ("LIVE → MIXER", ["--to-mixer"]), ("CHECK", ["--dry"])]),
 ]
 
+// v19 (Marko, 7.11.2026: "add new type actions"): the same module serves another category of actions, each with its own
+// list: MACROS (the CQ12T and routing runs) and AUDIO (Sync Track 2 to Track 1, AudioActions.swift).
 final class MacrosModule: NSObject, LiveModule, ObservableObject {
-    let id = "macros"
-    let title = "MACROS"
-    let about = "pre-recorded runs: a name and RUN; CHECK only looks"
+    let id: String
+    let title: String
+    let about: String
+    let list: [Macro]
+    private let noun: String
     let defaultOn = true
+    init(id: String = "macros", title: String = "MACROS", about: String = "pre-recorded runs: a name and RUN; CHECK only looks",
+         list: [Macro] = MACROS, noun: String = "MACRO") {
+        self.id = id; self.title = title; self.about = about; self.list = list; self.noun = noun
+        super.init()
+    }
     @Published var running: String?
     @Published var last = 0                     // the button pressed last, lit while its run goes on
     @Published var lines: [String: [String]] = [:]
@@ -66,7 +75,7 @@ final class MacrosModule: NSObject, LiveModule, ObservableObject {
         pendingAuto?.cancel()
         let job = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
-            for m in MACROS where m.auto != nil && self.autoOn[m.name] == true && self.running == nil {
+            for m in list where m.auto != nil && self.autoOn[m.name] == true && self.running == nil {
                 self.lines[m.name] = ["AUTO: \"\(set)\" opened"]
                 self.run(m, m.auto!, keep: true); break
             }
@@ -77,7 +86,7 @@ final class MacrosModule: NSObject, LiveModule, ObservableObject {
     func liveCame() {}
     func liveLeft() {}
     func hotkeys() -> [(Chord, () -> Void)] { [] }
-    func status() -> String { running.map { "RUNNING · " + $0 } ?? "\(MACROS.count) MACRO" + (MACROS.count == 1 ? "" : "S") }
+    func status() -> String { running.map { "RUNNING · " + $0 } ?? "\(list.count) \(noun)" + (list.count == 1 ? "" : "S") }
 
     func run(_ m: Macro, _ args: [String], keep: Bool = false) {
         guard running == nil else { return }
@@ -107,9 +116,9 @@ final class MacrosModule: NSObject, LiveModule, ObservableObject {
     }
 
     private var keep: [NSMenuItem] = []
-    @objc func mRun(_ i: NSMenuItem) { let m = MACROS[i.tag / 10]; run(m, m.buttons[i.tag % 10].1) }
+    @objc func mRun(_ i: NSMenuItem) { let m = list[i.tag / 10]; run(m, m.buttons[i.tag % 10].1) }
     func menuItems() -> [NSMenuItem] {
-        keep = MACROS.enumerated().flatMap { n, m in
+        keep = list.enumerated().flatMap { n, m in
             m.buttons.enumerated().filter { $0.element.0 != "CHECK" }.map { b, btn in
                 let i = NSMenuItem(title: "  ▶ " + m.name + (m.buttons.count > 2 ? "  ·  " + btn.0 : ""), action: running == nil ? #selector(mRun(_:)) : nil, keyEquivalent: "")
                 i.target = self; i.tag = n * 10 + b; return i
@@ -124,8 +133,8 @@ struct MacrosView: View {
     @ObservedObject var m: MacrosModule
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(MACROS.indices, id: \.self) { i in
-                let mac = MACROS[i]
+            ForEach(m.list.indices, id: \.self) { i in
+                let mac = m.list[i]
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 4) {
                         Text(mac.name + (m.running == mac.name ? "  · running" : "")).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(.white)

@@ -1,8 +1,8 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..0d47a89 100644
+index 6c058f6..7ca2109 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
-@@ -18,3 +18,167 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -18,3 +18,185 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -170,3 +170,21 @@ index 6c058f6..0d47a89 100644
 +                out += [int(c.warping) if c.is_audio_clip else -1, int(c.warp_mode) if c.is_audio_clip else -1]
 +            return tuple([len(track.arrangement_clips)] + out)
 +        self.osc_server.add_handler("/live/arrangement/warp", arrangement_warp)
++
++        #   /live/arrangement/clip_info <track>   the first audio clip on the track's timeline: (track, file path,
++        #   start in beats, start marker, end marker, warping, muted). Mantra, 7.11.2026 (Sync Track 2 to Track 1)
++        def arrangement_clip_info(params) -> Tuple:
++            track = Live.Application.get_application().get_document().tracks[int(params[0])]
++            clips = sorted([c for c in track.arrangement_clips if c.is_audio_clip], key=lambda c: c.start_time)
++            if not clips: return (int(params[0]), "")
++            c = clips[0]
++            return (int(params[0]), str(c.file_path), float(c.start_time), float(c.start_marker), float(c.end_marker), int(c.warping), int(c.muted))
++        self.osc_server.add_handler("/live/arrangement/clip_info", arrangement_clip_info)
++
++        #   /live/arrangement/clip_mute <track> <0|1>   every clip on the track's timeline switched off (1) or on (0):
++        #   deactivated, not deleted, so the reference stays. Mantra, 7.11.2026
++        def arrangement_clip_mute(params) -> Tuple:
++            track = Live.Application.get_application().get_document().tracks[int(params[0])]
++            for c in track.arrangement_clips: c.muted = bool(int(params[1]))
++            return (len(track.arrangement_clips),)
++        self.osc_server.add_handler("/live/arrangement/clip_mute", arrangement_clip_mute)

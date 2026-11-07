@@ -33,6 +33,7 @@ cat > "$APP/Contents/Info.plist" <<PL
 </dict></plist>
 PL
 rm -rf "$APP/Contents/Resources/helpers"; cp -R helpers "$APP/Contents/Resources/helpers"; rm -rf "$APP/Contents/Resources/helpers/__pycache__"   # the Python helpers travel inside the app
-codesign --force -s "Mantra Apps" "$APP"
+codesign --force -s "${SIGN:-Mantra Apps}" "$APP"
+if [ -n "$NO_INSTALL" ]; then echo "built $APP (v$V)"; exit 0; fi
 rm -rf "/Applications/$NAME.app"; cp -R "$APP" /Applications/
 echo "built $APP (v$V) and installed it in /Applications"

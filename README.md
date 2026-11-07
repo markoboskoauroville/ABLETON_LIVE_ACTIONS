@@ -12,6 +12,7 @@ same roof."*
 | MIDI TO MK CONTROL | MANTRA_MACKIE (`mackie.lua`, `mcu.lua`, `live.lua`, `rules.lua`) | a knob on a MIDI controller becomes a Mackie Control command in Live |
 | MIDI TO KEY STROKE | MIDI_TO_KEYSTROKE (`midikeys.lua`, …) | a knob's CC or a key's note becomes a key stroke, or the Mac's volume |
 | MACROS (v6–v13, 27.10.2026; the first tab since v8) | `app/Macros.swift` + `helpers/macro_*.py` | pre-recorded runs, a name and RUN (CHECK only looks). The first: **Map Channels to Allen & Heath CQ12T**: the CQ on USB in multitrack (16 × 16 in CoreAudio), Live's audio in/out the CQ12T (Log.txt; if not, Live's Settings opened and Marko asked by voice), then the CQ scene "Live Multitrack" recalled (names, inputs 1–10 from USB; stored by itself when missing), then track N → Ext. Out N and Ext. In N for 1–16, each track selected alone and the whole set read back; AUTO runs it when a set opens |
+| AUDIO (v19, 7.11.2026) | `app/AudioActions.swift` (the MACROS module, a second list) + `helpers/audio_sync.py` | a new category of actions on audio. The first: **Sync Track 2 to Track 1**: the same music from two recorders, track 1 the master; found by the onset envelope of the whole files (Shazam-like), then measured to the sample every 20 s, audio 2 stretched onto track 1's clock (a dropout becomes a hard cut), and exported: two WAVs of exactly the same length in "<track 1 file> SYNC". RUN also puts the synced audio 2 on a new track at track 1's place and switches the old clip off; CHECK only measures. Without Live: `python3 helpers/audio_sync.py --a A.wav --b B.wav --out DIR` |
 | MACROS: Names between Live and the CQ12T (v10) | `helpers/macro_names.py`, `helpers/mixpad.py` | MIXER → LIVE (CQ MixPad CONFIG › INPUTS names → track names) or LIVE → MIXER (track names → each input's Name/Colour, 6 characters); CHECK lists both |
 
 **ON / OFF and ✕ (v3, 19.10.2026).** The first row of the window is ABLETON LIVE ACTIONS ON / OFF, the version, and ✕
@@ -40,3 +41,10 @@ for Live when it is closed. Proven: with this app and A1's ears running, two mor
 once, all 100 answered, nothing on 11001 at rest. Converted the same day: CQ MixPad Tutorial v23, Opening and Closing
 v11, OXI v30, the Teacher, the Command Guide, the Santoshi tools; already sharing: Mantra Mackie and Stem Separation
 (they never bound it).
+
+## Building (v19, 7.11.2026)
+
+Compiled only by GitHub (MANTRA_MANIFEST compile-on-github.md): `.github/workflows/build.yml` (the manifest's
+mac-swift.yml) builds on every push to main and releases `app.zip` as Latest. On the Mac:
+`gh release download --repo markoboskoauroville/ABLETON_LIVE_ACTIONS --pattern app.zip -D /tmp/x --clobber`, then
+`ditto -x -k /tmp/x/app.zip /Applications` and `codesign --force -s "Mantra Apps"` on the app.
