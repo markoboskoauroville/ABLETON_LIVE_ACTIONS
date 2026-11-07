@@ -206,3 +206,6 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 "So it's the same action, it is going to synchronize and then it's going to export two waves in the same length."
 "You are going to upload concept once you fix synchronization. Synchronization needs to be fixed inside Ableton Live, pushing every 20 seconds audio to match with band markers."
 (the YouTube upload was stopped by Marko before any file was chosen)
+"Please check if camera audio is sterile. If not keep it mono if it's sterile keep it sterile"
+"So in this case, Master, of course, is Camera audio master for thinking because everything must fit to the picture."
+"You need to find the best way to synchronize these two audio so they match every 20 seconds. Check marks matching in sample level to the same parts of the songs are there and then the length must match camera audio and then mix it 5050 inside the DaVinci itself export upload to YouTube"

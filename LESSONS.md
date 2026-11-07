@@ -23,3 +23,12 @@
   the whole macro). Names written to the CQ must overwrite the scene, or the next recall brings the old ones back.
 - **A factory reset**: MixPad says "Connection lost" (Ok, Connect again), Stream Mode stays Multitrack, inputs go
   Analogue, names Ip1…, scenes empty, and Live's audio device falls to No Device until the USB comes back.
+
+## 7.11.2026 — Sync Track 2 to Track 1 (v19, v20)
+- Two recorders of one concert: onset envelope of the whole files finds them (140 σ); waveform every 20 s to the sample.
+- A recorder that LOST sound makes the offset step; that recorder must PAUSE for the step (silence), never a 20 s slur
+  (an echo in a 50/50 mix) and never sound played twice. The step is found by a change point over 100 ms windows, each
+  window free to find its best within ±2 ms (0.4 ms off at 5 kHz is two cycles: a fixed offset misplaced it by 0.3 s).
+- Live: warp markers carry the same map (clip beat, file seconds), Re-Pitch; the pause needs ≥ 30 ms of audio in Live,
+  so a marker 1 s later puts it back exactly. Each output WAV keeps its source's channels (the camera is mono).
+- Check every 20 s after writing: median 0.39 ms, 95 % within 5.2 ms on the embassy take (room mic against the desk).

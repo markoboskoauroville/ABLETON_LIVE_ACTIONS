@@ -1,8 +1,8 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..7ca2109 100644
+index 6c058f6..3784d72 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
-@@ -18,3 +18,185 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -18,3 +18,215 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -188,3 +188,33 @@ index 6c058f6..7ca2109 100644
 +            for c in track.arrangement_clips: c.muted = bool(int(params[1]))
 +            return (len(track.arrangement_clips),)
 +        self.osc_server.add_handler("/live/arrangement/clip_mute", arrangement_clip_mute)
++
++        #   /live/arrangement/warp_markers <track> [mode b1 s1 b2 s2 ...]   the warp markers of the first audio clip on the
++        #   track's timeline: without more arguments, read (track, start_time, start_marker, end_marker, warping, mode,
++        #   then beat, seconds per marker); with them, warping on, the warp mode set (3 = Re-Pitch) and every marker
++        #   replaced by the given (beat in the clip, seconds in the file) pairs. Mantra, 7.11.2026 (Marko: "Synchronization
++        #   needs to be fixed inside Ableton Live, pushing every 20 seconds audio to match")
++        def arrangement_warp_markers(params) -> Tuple:
++            track = Live.Application.get_application().get_document().tracks[int(params[0])]
++            clips = sorted([c for c in track.arrangement_clips if c.is_audio_clip], key=lambda c: c.start_time)
++            if not clips: return (int(params[0]), -1)
++            c = clips[0]
++            if len(params) > 2:
++                c.warping = True
++                c.warp_mode = int(params[1])
++                pairs = [(float(params[i]), float(params[i + 1])) for i in range(2, len(params) - 1, 2)]
++                old = [float(m.beat_time) for m in c.warp_markers]
++                failed = 0
++                for bt, st in pairs:
++                    if any(abs(float(m.beat_time) - bt) < 1e-6 for m in c.warp_markers): continue
++                    try: c.add_warp_marker(Live.Clip.WarpMarker(st, bt))
++                    except Exception: failed += 1
++                keep = set(round(bt, 6) for bt, _ in pairs)
++                for bt in old:
++                    if round(bt, 6) not in keep:
++                        try: c.remove_warp_marker(bt)
++                        except Exception: pass
++            out = [int(params[0]), float(c.start_time), float(c.start_marker), float(c.end_marker), int(c.warping), int(c.warp_mode)]
++            for m in c.warp_markers: out += [float(m.beat_time), float(m.sample_time)]
++            return tuple(out)
++        self.osc_server.add_handler("/live/arrangement/warp_markers", arrangement_warp_markers)

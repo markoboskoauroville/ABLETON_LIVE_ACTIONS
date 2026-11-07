@@ -9,8 +9,8 @@ The same music heard by two recorders (a camera and the desk, two phones). Track
   3. Audio 2 is written on track 1's clock sample by sample: between the points the stretch is interpolated; a jump
      of more than 20 ms between neighbours (a recorder that dropped samples) is found to 0.5 s and made a hard cut.
   4. Two WAVs of exactly track 1's length (24 bit, 48 kHz): "<track 1 file> SYNC/1 <name>.wav" and "2 <name> synced.wav".
-     RUN also puts the synced audio 2 on a new track under the master, at the master's place, unwarped, and switches
-     the old track-2 clip off (deactivated, not deleted: the reference stays). CHECK (--dry) measures and reports only.
+     RUN also writes the same map into Live: a warp marker every 20 s on track 2's clip (Re-Pitch), so Live itself plays
+     audio 2 on track 1's clock. Track 1's clip should be unwarped. CHECK (--dry) measures and reports only.
 Room sound against a desk feed agrees to about ±3 ms (a metre of air); closer is not there to be measured.
     python3 audio_sync.py [--dry] [--a FILE --b FILE --out DIR]     (--a/--b: without Live, for tests)
 """
@@ -84,7 +84,8 @@ def live_clips():
         r = q("/live/arrangement/clip_info", t)
         if not r or len(r) < 3 or not r[1]:
             return None, f"track {t + 1} has no audio clip on the timeline" + ("" if r else " (Live did not answer: is AbletonOSC loaded with the Mantra patch?)")
-        out.append({"track": t, "file": r[1], "start": float(r[2]), "name": (q("/live/track/get/name", t) or [t, f"Track {t + 1}"])[1]})
+        out.append({"track": t, "file": r[1], "start": float(r[2]), "marker": float(r[3]), "warping": int(r[5]),
+                    "name": (q("/live/track/get/name", t) or [t, f"Track {t + 1}"])[1]})
     return out, liveosc
 
 
@@ -126,21 +127,38 @@ def main():
         for i in range(1, len(tt) - 1):
             if abs(oo[i] - oo[i - 1]) > 0.006 and abs(oo[i] - oo[i + 1]) > 0.006 and abs(oo[i - 1] - oo[i + 1]) < 0.006: keep[i] = False
         tt, oo = tt[keep], oo[keep]
-        kt, ko = [tt[0]], [oo[0]]; jumps = []
+        # v3 (Marko, 7.11.2026: "Camera audio master ... because everything must fit to the picture"): between the
+        # measured points a straight line, exactly what Live's warp markers do. Where a recorder lost sound the offset
+        # steps: the step is found to about 20 ms (where the old offset stops matching and the new one starts), and
+        # there audio 2 PAUSES (it lost sound: silence for the step, the picture goes on) or SKIPS ahead (track 1 lost
+        # sound). Never a 20 s slur, never sound played twice.
+        def splice(t0, t1, o_old, o_new):
+            """the moment the old offset stops being true: short windows (100 ms, every 20 ms) correlated at both
+            offsets; the cut is the one change point that best splits 'old matches' before it from 'new matches' after"""
+            ts = np.arange(t0, t1, 0.02); diff = []
+            for t_ in ts:
+                # each window finds its own best within ±2 ms of each offset: 0.4 ms off at 5 kHz is two cycles
+                c_old = fine(a, b, t_, o_old, win=0.10, search=0.002)[1]
+                c_new = fine(a, b, t_, o_new, win=0.10, search=0.002)[1]
+                diff.append(c_old - c_new)
+            d = np.array(diff); c = np.concatenate([[0], np.cumsum(d)]); total = c[-1]
+            score = c - (total - c)                      # sum before minus sum after, for every cut position
+            k = int(score.argmax())
+            return float(ts[min(k, len(ts) - 1)])
+        kt, ko, steps = [tt[0]], [oo[0]], []
         for i in range(1, len(tt)):
-            if abs(oo[i] - oo[i - 1]) > JUMP:
-                lo, hi = tt[i - 1], tt[i]
-                while hi - lo > 0.5:
-                    mid = (lo + hi) / 2; om, cm = fine(a, b, mid, (oo[i - 1] + oo[i]) / 2, win=1.0, search=abs(oo[i] - oo[i - 1]) + 0.01)
-                    if om is None or abs(om - oo[i - 1]) < abs(om - oo[i]): lo = mid
-                    else: hi = mid
-                cut = (lo + hi) / 2; jumps.append((cut, oo[i] - oo[i - 1]))
-                kt += [cut - 1e-6, cut]; ko += [np.interp(cut, [tt[i - 1], tt[i]], [oo[i - 1], oo[i - 1]]), oo[i]]
+            d = oo[i] - oo[i - 1]
+            if abs(d) > JUMP:
+                cut = splice(tt[i - 1], tt[i], oo[i - 1], oo[i]); steps.append((cut, d))
+                if d < 0:   # audio 2 lost sound: it waits |d| (the same moment of audio 2 for the whole pause)
+                    kt += [cut, cut + abs(d)]; ko += [oo[i - 1], oo[i - 1] - abs(d) + 0.0005]
+                else:       # track 1 lost sound: audio 2 skips ahead
+                    kt += [cut, cut + 0.001]; ko += [oo[i - 1], oo[i]]
             kt.append(tt[i]); ko.append(oo[i])
         kt, ko = np.array(kt), np.array(ko)
-        drift = (oo[-1] - oo[0]) - sum(j[1] for j in jumps)
+        drift = (oo[-1] - oo[0]) - sum(d for _, d in steps)
         say(f"  {len(tt)} points every {STEP:.0f} s; drift {drift * 1000:+.1f} ms over {(tt[-1] - tt[0]) / 60:.0f} min"
-            + "".join(f"; a dropout of {d * 1000:+.0f} ms at {int(c // 60)}:{c % 60:04.1f}" for c, d in jumps))
+            + "".join(f"; audio 2 {'lost' if d < 0 else 'has'} {abs(d) * 1000:.0f} ms at {int(c // 60)}:{c % 60:05.2f}: it {'pauses' if d < 0 else 'skips ahead'}" for c, d in steps))
         if DRY:
             say("DONE (check): nothing written"); return 0
         # the two WAVs, track 1's length
@@ -148,17 +166,24 @@ def main():
         outdir = arg("--out") or os.path.join(os.path.dirname(A), stem + " SYNC")
         os.makedirs(outdir, exist_ok=True)
         w1 = os.path.join(outdir, "1 " + stem + ".wav"); w2 = os.path.join(outdir, "2 " + os.path.splitext(os.path.basename(B))[0] + " synced.wav")
-        a2 = decode(A, SR, 2, tmp + "/a2"); b2 = decode(B, SR, 2, tmp + "/b2")
+        # each WAV keeps its source's channels (Marko, 7.11.2026: "if it's mono keep it mono, if it's stereo keep it stereo")
+        def channels(path):
+            r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=channels", "-of", "csv=p=0", path], capture_output=True, text=True)
+            return max(1, min(2, int((r.stdout.strip() or "2").splitlines()[0])))
+        chA, chB = channels(A), channels(B)
+        a2 = decode(A, SR, chA, tmp + "/a2").reshape(-1, chA); b2 = decode(B, SR, chB, tmp + "/b2").reshape(-1, chB)
         n = len(a2); chunk = SR * 30
-        with sf.SoundFile(w1, "w", SR, 2, "PCM_24") as f1, sf.SoundFile(w2, "w", SR, 2, "PCM_24") as f2:
+        with sf.SoundFile(w1, "w", SR, chA, "PCM_24") as f1, sf.SoundFile(w2, "w", SR, chB, "PCM_24") as f2:
             for s0 in range(0, n, chunk):
                 s1 = min(n, s0 + chunk); f1.write(np.asarray(a2[s0:s1]))
                 ta = np.arange(s0, s1) / SR
                 pos = (ta + np.interp(ta, kt, ko)) * SR
                 i0 = np.floor(pos).astype(np.int64); fr = (pos - i0)[:, None]
                 ok = (i0 >= 0) & (i0 + 1 < len(b2))
-                y = np.zeros((s1 - s0, 2), np.float32)
+                y = np.zeros((s1 - s0, chB), np.float32)
                 y[ok] = b2[i0[ok]] * (1 - fr[ok]) + b2[i0[ok] + 1] * fr[ok]
+                rate = np.gradient(pos) if len(pos) > 1 else np.ones(1)
+                y[rate < 0.1] = 0.0          # a pause: silence, never a held sample
                 f2.write(y)
         json.dump({"points": [[float(x) for x in p] for p in pts], "knots_t": kt.tolist(), "knots_o": ko.tolist()},
                   open(os.path.join(outdir, "sync map.json"), "w"), indent=1)
@@ -168,16 +193,25 @@ def main():
         x1 = decode(w1, SR, 1, tmp + "/v1"); x2 = decode(w2, SR, 1, tmp + "/v2")
         # only where both hold sound: inside the measured stretch, and a clear match (silence after a recorder stopped is not a miss)
         lo, hi = max(10.0, kt[0]), min(durA - 10, kt[-1])
-        res = [fine(x1, x2, t, 0.0, search=0.012) for t in np.linspace(lo, hi, 12)]
+        # every 20 s, halfway between the measured points (where a straight line is furthest from the truth)
+        res = [fine(x1, x2, t, 0.0, search=0.012) for t in np.arange(lo + STEP / 2, hi, STEP)]
         res = [r[0] for r in res if r[0] is not None and r[1] >= 0.2]
-        worst = max(abs(r) for r in res) * 1000 if res else float("nan")
+        ms = np.abs(np.array(res)) * 1000 if res else np.array([np.nan])
+        worst = float(np.percentile(ms, 95))
+        say(f"  checked every {STEP:.0f} s at {len(res)} places: median {np.median(ms):.2f} ms, 95 % within {worst:.2f} ms, largest {ms.max():.2f} ms ({(ms > 5).sum()} over 5 ms)")
         say(f"  written: {os.path.basename(w1)}, {os.path.basename(w2)} — both {c1.frames / SR:.3f} s{'' if same else ' ✗ NOT THE SAME LENGTH'}")
-        say(f"  measured again at {len(res)} points: within ±{worst:.1f} ms ({worst * 48:.0f} samples)")
         if osc is not None:
-            r = osc.ask("/live/arrangement/audio_clip", w2, "2 synced", clips[0]["start"], wait=8.0)
-            osc.tell("/live/arrangement/clip_mute", 1, 1)
-            say(f"  Live: the synced audio 2 on track {r[0] + 1 if r else '?'} at track 1's place; track 2's clip switched off")
-        say(f"DONE: in sync within ±{worst:.1f} ms, two WAVs of {c1.frames / SR:.3f} s in \"{outdir}\"")
+            # the same map as warp markers on track 2's clip: (its beat, the second of its file) every 20 s, Re-Pitch
+            tempo = (osc.ask("/live/song/get/tempo", wait=3.0) or [120.0])[0]; bps = tempo / 60.0
+            w = osc.ask("/live/arrangement/warp_markers", 1, wait=5.0)
+            st2, sm2 = float(w[1]), float(w[2])
+            pc = clips[0]["start"] - clips[0]["marker"] * (bps if clips[0]["warping"] == 0 else 1.0)   # song beat of track 1's second 0
+            pairs = [(round(pc + bps * float(t_) - st2 + sm2, 6), round(float(t_ + o_), 6)) for t_, o_ in zip(kt, ko)]
+            first = pairs[0]; pairs = [(first[0] - bps * first[1], 0.0)] + pairs if first[0] - bps * first[1] >= 0 else pairs
+            r = osc.ask("/live/arrangement/warp_markers", 1, 3, *[x for p_ in pairs for x in p_], wait=30.0)
+            n = (len(r) - 6) // 2 if r else 0
+            say(f"  Live: {n} warp markers on track 2's clip (Re-Pitch), it now plays on track 1's clock")
+        say(f"DONE: in sync (95 % within {worst:.1f} ms), two WAVs of {c1.frames / SR:.3f} s in \"{outdir}\"")
         return 0 if same else 2
     finally:
         for f in os.listdir(tmp): os.remove(os.path.join(tmp, f))
