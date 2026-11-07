@@ -200,3 +200,6 @@ PERMISSIONS are now Accessibility buttons; the first row's carry the fixed ident
 `close` (a module's own ON / OFF carry none, so `off` is always the app's). Checked: built, installed; v17 (pid 65874,
 idle, Live not running) quit through its menu's Quit, v18 opened with open -g (pid 97664); window captured by id at its
 minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 3 then 0).
+
+## 7.11.2026, 23:40 (hub session)
+"Please code inside Abbotton Live Actions add new type actions. And then create this action which is going to sync every checking every 20 seconds to tracks. So I don't need to use AI anymore. I can just put on audio one one track on audio two second track and they are going to be aligned after I press action with this Shazam algorithm and finish at the same time."
