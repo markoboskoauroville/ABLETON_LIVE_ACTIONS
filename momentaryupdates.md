@@ -204,3 +204,5 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 ## 7.11.2026, 23:40 (hub session)
 "Please code inside Abbotton Live Actions add new type actions. And then create this action which is going to sync every checking every 20 seconds to tracks. So I don't need to use AI anymore. I can just put on audio one one track on audio two second track and they are going to be aligned after I press action with this Shazam algorithm and finish at the same time."
 "So it's the same action, it is going to synchronize and then it's going to export two waves in the same length."
+"You are going to upload concept once you fix synchronization. Synchronization needs to be fixed inside Ableton Live, pushing every 20 seconds audio to match with band markers."
+(the YouTube upload was stopped by Marko before any file was chosen)
