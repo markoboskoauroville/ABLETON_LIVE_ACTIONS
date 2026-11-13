@@ -209,3 +209,10 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 "Please check if camera audio is sterile. If not keep it mono if it's sterile keep it sterile"
 "So in this case, Master, of course, is Camera audio master for thinking because everything must fit to the picture."
 "You need to find the best way to synchronize these two audio so they match every 20 seconds. Check marks matching in sample level to the same parts of the songs are there and then the length must match camera audio and then mix it 5050 inside the DaVinci itself export upload to YouTube"
+
+## 13.11.2026: A1 leaves Hammerspoon (hub session)
+
+> Let me know why this Hammer Spoon is still running when I'm converting everything to Swift. If something is not converted, please create agents to convert anything that is still on Hammer Spoon to Swift right now. Create many agents, one agent per application.
+
+(Agent for Ableton Assistant A1: a1.lua, 3,225 lines, the biggest Lua left. The Swift A1 already lives here since 13.10.2026 (app/A1*.swift); this turn: audit against the Lua, switch the Star row, unload a1 from Hammerspoon.)
+**Status:** in progress, 13.11.2026.
