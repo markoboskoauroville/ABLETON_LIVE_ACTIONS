@@ -215,4 +215,4 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 > Let me know why this Hammer Spoon is still running when I'm converting everything to Swift. If something is not converted, please create agents to convert anything that is still on Hammer Spoon to Swift right now. Create many agents, one agent per application.
 
 (Agent for Ableton Assistant A1: a1.lua, 3,225 lines, the biggest Lua left. The Swift A1 already lives here since 13.10.2026 (app/A1*.swift); this turn: audit against the Lua, switch the Star row, unload a1 from Hammerspoon.)
-**Status:** in progress, 13.11.2026.
+**Status:** done 13.11.2026 (audit, no code change needed): the Swift A1 (v20, installed, signed, running pid 6991) is 1:1 with a1.lua; STAR_SWIFT row a1 = kind app (commit 363dd6d); the Lua A1 switched off in Hammerspoon and not loaded at the next start (MANTRA_STAR LUA_ROWS). Marko to test by hand with Live: Space, 1/2, h, 7/8/9, arrows, ⌘ arrows, I/O/L, the blob.

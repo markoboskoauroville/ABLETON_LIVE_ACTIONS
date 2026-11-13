@@ -87,3 +87,5 @@ Compiled only by GitHub (MANTRA_MANIFEST compile-on-github.md): `.github/workflo
 mac-swift.yml) builds on every push to main and releases `app.zip` as Latest. On the Mac:
 `gh release download --repo markoboskoauroville/ABLETON_LIVE_ACTIONS --pattern app.zip -D /tmp/x --clobber`, then
 `ditto -x -k /tmp/x/app.zip /Applications` and `codesign --force -s "Mantra Apps"` on the app.
+
+**13.11.2026, A1 off Hammerspoon.** The star's row `a1` opens this app (A1 tab; STAR_SWIFT rows.json kind app). MANTRA_STAR apps/a1.lua is no longer loaded (the star's LUA_ROWS) and is switched off in the running Hammerspoon; the page :8849 is the A1 tab. Only one program may hold A1's key filter: never run the Lua A1 and this module together.
