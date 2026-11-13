@@ -32,3 +32,7 @@
 - Live: warp markers carry the same map (clip beat, file seconds), Re-Pitch; the pause needs ≥ 30 ms of audio in Live,
   so a marker 1 s later puts it back exactly. Each output WAV keeps its source's channels (the camera is mono).
 - Check every 20 s after writing: median 0.39 ms, 95 % within 5.2 ms on the embassy take (room mic against the desk).
+
+## 13.11.2026
+
+- 13.11.2026: an action that moved to Swift must be opened from the star as an app row, with the old Lua trigger deleted.
