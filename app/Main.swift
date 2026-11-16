@@ -22,6 +22,10 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
         for m in MODULES { on[m.id] = saved[m.id] ?? m.defaultOn }
         let menu = NSMenu(); menu.delegate = self; item.menu = menu
         item.button?.title = "LIVE"; item.button?.toolTip = "Ableton Live Actions: click for everything"
+        HoverCard.attach(to: item, autoPipe: true) { [weak self] in
+            guard let self = self else { return HoverCard.Content(name: "Ableton Live Actions (Mantra)", what: "", state: "") }
+            return HoverCard.Content(name: "Ableton Live Actions (Mantra)", what: "Macros, audio actions, Mackie and MIDI keys for Live", state: (self.on.values.contains(true) ? "ON" : "OFF"), stateColor: .systemGreen, lines: ["Modules on: " + (self.on.filter { $0.value }.keys.sorted().joined(separator: ", ")), "Modules off: " + (self.on.filter { !$0.value }.keys.sorted().joined(separator: ", "))])
+        }
         for m in MODULES where on[m.id]! { m.setOn(true) }
         let nc = NSWorkspace.shared.notificationCenter
         nc.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
