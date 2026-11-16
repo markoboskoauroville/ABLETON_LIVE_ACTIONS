@@ -36,3 +36,6 @@
 ## 13.11.2026
 
 - 13.11.2026: an action that moved to Swift must be opened from the star as an app row, with the old Lua trigger deleted.
+
+## Lesson: hover card and pipes (16.11.2026)
+Poll the mouse (macOS draws a status item once per display, only one copy owns the button, so a tracking area misses the other display). The panel needs `titleVisibility = .hidden` for the one-title guard. A non-activating NSPanel at statusBar+1 never takes focus. Pipes for text items: attributed title; for icon items: pipedIcon + rightPipe; for view items: drawPipes or PipesView.
