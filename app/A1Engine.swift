@@ -205,7 +205,9 @@ final class A1Engine: ObservableObject {
         shortcuts.overrides = shortcuts.overrides.filter { id, _ in shortcuts.rows.contains { $0.id == id } }
         for m in maps where (m["off"] as? Bool) != true {
             let unbound = (m["unbound"] as? Bool) == true
-            guard var code = unbound ? (shortcuts.overrides[mapId(m)]?.code ?? -1) : (A1KEY["\(m["from"] ?? "")"] ?? -2), code != -2, code >= 0 else { continue }
+            var code: Int
+            if unbound { guard let o = shortcuts.overrides[mapId(m)] else { continue }; code = o.code }      // a command with no key until he captures one
+            else { guard let c = A1KEY["\(m["from"] ?? "")"] else { continue }; code = c }
             var mm = m
             if let o = shortcuts.overrides[mapId(m)] { code = o.code; mm["from"] = o.label; mm["mods"] = o.mods }      // his own key (CUSTOM SHORTCUTS)
             if mm["act"] != nil || mm["menu"] != nil || A1KEY["\(mm["to"] ?? "")"] != nil { byCode[code, default: []].append(mm) }
