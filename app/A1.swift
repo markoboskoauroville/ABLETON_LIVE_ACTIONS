@@ -7,7 +7,7 @@ import AppKit
 final class A1Module: NSObject, LiveModule {
     let id = "a1"
     let title = "ABLETON ASSISTANT A1"
-    let about = "Space continues, 1 and 2 zoom, h splits, 7/8/9 the markers, the arrows walk the transients, I and O mark the loop on the next transient's zero, L the loop; the insert point remembered beside the set; the clock blob"
+    let about = "Space plays from the insert point or stops, 1 and 2 zoom, h splits, 7/8/9 the markers, the arrows walk the transients, I and O mark the loop on the next transient's zero, L the loop; the insert point remembered beside the set; the clock blob"
     let defaultOn = true
     let engine = A1Engine()
 
@@ -63,7 +63,7 @@ struct A1View: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !e.tapOK {
-                Text("Accessibility: not allowed yet. System Settings → Privacy & Security → Accessibility → Ableton Live Actions (Mantra) on.")
+                Text("Accessibility: not allowed yet. System Settings → Privacy & Security → Accessibility → Ableton Live Assistant (Mantra) on.")
                     .font(.system(size: 11)).foregroundColor(AMBER).fixedSize(horizontal: false, vertical: true)
             }
             // the clock, the status, the wire
@@ -117,7 +117,7 @@ struct A1View: View {
 
             // THE KEYS
             Head(t: "THE KEYS (WHILE LIVE IS IN FRONT)")
-            row("space", e.flag("space"), "Space", "⇧Space" + (e.flag("follow") ? ", then ⌘⇧Space" : ""), "Continue Playback; ⇧Space is Live's Play (the jump back)", nil)
+            row("space", e.flag("space"), "Space", "stopped: Space · playing: ⇧Space" + (e.flag("follow") ? ", then ⌘⇧Space" : ""), "stopped: a plain Space, Live plays from the insert point wherever you put it (22.11.2026); playing: Continue Playback stops it", nil)
             row("follow", e.flag("follow"), "after Space", "⌘⇧Space", "Move Insert Marker To Playhead: the insert point follows every stop", nil)
             ForEach(Array(e.maps.enumerated()), id: \.offset) { i, m in
                 let via = (e.flag("viaMenu") || (m["noKey"] as? Bool) == true || m["act"] != nil) ? e.menuOf(m) : nil

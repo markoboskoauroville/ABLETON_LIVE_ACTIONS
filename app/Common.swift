@@ -1,10 +1,11 @@
-// What every part of Ableton Live Actions shares: the colours and words of the CAMERA language, the state files,
+// What every part of Ableton Live Assistant shares: the colours and words of the CAMERA language, the state files,
 // Live itself, Python, keys and hot keys.
 import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 
 let VERSION = 21
+let APP_NAME = "Ableton Live Assistant (Mantra)"   // renamed from Ableton Live Actions (Mantra), 22.11.2026; the bundle id, the executable and the settings files kept
 let RELEASES = "https://github.com/markoboskoauroville/ABLETON_LIVE_ACTIONS/releases/latest"
 let BUNDLE = "com.ableton.live"
 let PYTHON = NSHomeDirectory() + "/.pyenv/versions/3.10.14/bin/python3"
@@ -45,7 +46,7 @@ extension View {
 // TOP (Marko, 31.10.2026: "Each needs to have the same user interface elements. On, off and top."): green = the
 // window stays above every other window; remembered in UserDefaults "onTop" and applied at launch
 func floatWindows(_ on: Bool) {
-    for w in NSApp.windows where w.title.hasPrefix("Ableton Live Actions") { w.level = on ? .floating : .normal }
+    for w in NSApp.windows where w.title.hasPrefix("Ableton Live Assistant") { w.level = on ? .floating : .normal }
 }
 // ✕, the window's close at its far upper-right corner (Marko, 19.10.2026: "please unify the position of the close
 // button on every application. It's far upper right corner. There is X to close the dialog in every dialog, same").

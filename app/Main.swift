@@ -1,4 +1,4 @@
-// Ableton Live Actions (Mantra): one app for everything that fits Ableton Live to Marko's hands. Marko, 13.10.2026:
+// Ableton Live Assistant (Mantra): one app for everything that fits Ableton Live to Marko's hands. Marko, 13.10.2026:
 // "Same principle as Davinci Resolve: we need to create Ableton Live actions. Right now everything what's related to
 // Ableton Live can be under the same roof." The modules (Module.swift) are switched on and off here; each has its
 // section in the window, its rows in the menu-bar menu, and its hot keys, live only while Live is in front.
@@ -21,10 +21,10 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
         let saved = SETTINGS.read()["modules"] as? [String: Bool] ?? [:]
         for m in MODULES { on[m.id] = saved[m.id] ?? m.defaultOn }
         let menu = NSMenu(); menu.delegate = self; item.menu = menu
-        item.button?.title = "LIVE"; item.button?.toolTip = "Ableton Live Actions: click for everything"
+        item.button?.title = "LIVE"; item.button?.toolTip = "Ableton Live Assistant: click for everything"
         HoverCard.attach(to: item, autoPipe: true) { [weak self] in
-            guard let self = self else { return HoverCard.Content(name: "Ableton Live Actions (Mantra)", what: "", state: "") }
-            return HoverCard.Content(name: "Ableton Live Actions (Mantra)", what: "Macros, audio actions, Mackie and MIDI keys for Live", state: (self.on.values.contains(true) ? "ON" : "OFF"), stateColor: .systemGreen, lines: ["Modules on: " + (self.on.filter { $0.value }.keys.sorted().joined(separator: ", ")), "Modules off: " + (self.on.filter { !$0.value }.keys.sorted().joined(separator: ", "))])
+            guard let self = self else { return HoverCard.Content(name: "Ableton Live Assistant (Mantra)", what: "", state: "") }
+            return HoverCard.Content(name: "Ableton Live Assistant (Mantra)", what: "Macros, audio actions, Mackie and MIDI keys for Live", state: (self.on.values.contains(true) ? "ON" : "OFF"), stateColor: .systemGreen, lines: ["Modules on: " + (self.on.filter { $0.value }.keys.sorted().joined(separator: ", ")), "Modules off: " + (self.on.filter { !$0.value }.keys.sorted().joined(separator: ", "))])
         }
         for m in MODULES where on[m.id]! { m.setOn(true) }
         let nc = NSWorkspace.shared.notificationCenter
@@ -63,7 +63,7 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
     }
     @objc func showSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        if let w = NSApp.windows.first(where: { $0.title.contains("Ableton Live Actions") && ($0.isVisible || $0.isMiniaturized) }) {
+        if let w = NSApp.windows.first(where: { $0.title.contains("Ableton Live Assistant") && ($0.isVisible || $0.isMiniaturized) }) {
             w.deminiaturize(nil); w.makeKeyAndOrderFront(nil)
         } else {
             NSWorkspace.shared.open(Bundle.main.bundleURL)   // the window was closed: a reopen makes it again
@@ -124,7 +124,7 @@ struct SettingsView: View {
         // the top of every user interface, there will now be an on/off switch". Running is ON; OFF stops every module
         // (applicationWillTerminate) and quits. ✕ closes the window only.
         HStack(spacing: 0) {
-            Text("ABLETON LIVE ACTIONS").font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(.white).padding(.trailing, 6)
+            Text("ABLETON LIVE ASSISTANT").font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(.white).padding(.trailing, 6)
             Word(text: "ON", on: true) {}
             Word(text: "OFF", on: false, action: { NSApp.terminate(nil) }, id: "off")
             Spacer()
@@ -171,7 +171,7 @@ struct SettingsView: View {
 let UMBRELLA = Umbrella()
 
 final class Delegate: NSObject, NSApplicationDelegate {
-    func applicationDidFinishLaunching(_ n: Notification) { _ = UMBRELLA }
+    func applicationDidFinishLaunching(_ n: Notification) { _ = UMBRELLA; Updater.checkAtStart() }   // asks to update at start (kit mac-updater)
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { false }
     // the star's open of a running app is a reopen: the window comes back (made again by the WindowGroup if closed)
     func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows: Bool) -> Bool {
@@ -181,10 +181,12 @@ final class Delegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ n: Notification) { for m in MODULES { m.setOn(false) } }
 }
 
+// the struct keeps its old name: SwiftUI keys the saved window frame on it ("NSWindow Frame AbletonLiveActions.SettingsView-…"),
+// so a rename would forget where he put the window
 @main struct AbletonLiveActions: App {
     @NSApplicationDelegateAdaptor(Delegate.self) var delegate
     var body: some Scene {
-        WindowGroup("Ableton Live Actions (Mantra)") { SettingsView(u: UMBRELLA) }
+        WindowGroup("Ableton Live Assistant (Mantra)") { SettingsView(u: UMBRELLA) }
             .windowResizability(.contentMinSize).defaultSize(width: 820, height: 820)
     }
 }

@@ -48,7 +48,7 @@ final class MKMidi {
 
     func start() {
         guard client == 0 else { return }
-        MIDIClientCreateWithBlock("Ableton Live Actions · MK Control" as CFString, &client) { [weak self] n in
+        MIDIClientCreateWithBlock("Ableton Live Assistant · MK Control" as CFString, &client) { [weak self] n in
             if n.pointee.messageID == .msgSetupChanged { DispatchQueue.main.async { self?.onSetup?() } }
         }
         MIDIInputPortCreateWithProtocol(client, "MK in" as CFString, ._1_0, &inPort) { [weak self] list, refCon in

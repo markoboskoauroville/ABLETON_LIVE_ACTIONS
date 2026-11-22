@@ -39,3 +39,13 @@
 
 ## Lesson: hover card and pipes (16.11.2026)
 Poll the mouse (macOS draws a status item once per display, only one copy owns the button, so a tracking area misses the other display). The panel needs `titleVisibility = .hidden` for the one-title guard. A non-activating NSPanel at statusBar+1 never takes focus. Pipes for text items: attributed title; for icon items: pipedIcon + rightPipe; for view items: drawPipes or PipesView.
+
+## 22.11.2026: Space after a click on the waveform (v21)
+- **Continue Playback is not Play.** Shift+Space starts at the position where Live last stopped; a plain Space starts at
+  the insert point. A key that always sends Continue Playback ignores every click of his on the waveform while stopped.
+  The insert point is the master (his measurement of 21.9.2026): stopped means plain Space, nothing remembered, nothing
+  planted afterwards; only a STOP plants the insert point on the playhead.
+- A cached "is Live playing" is up to a second old: ask Live afresh before the decision, never trust an old reading.
+- Keep the decision a pure function (`Transport.decide`) so the workflow can test it without Live.
+- A rename keeps the bundle id (permissions), the App struct name (SwiftUI's saved window frame) and any folder other
+  programs import by path.

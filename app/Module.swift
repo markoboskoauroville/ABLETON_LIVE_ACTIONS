@@ -1,4 +1,4 @@
-// A MODULE of Ableton Live Actions: one thing that fits Live to Marko's hands (A1, MIDI to MK Control, MIDI to Key
+// A MODULE of Ableton Live Assistant: one thing that fits Live to Marko's hands (A1, MIDI to MK Control, MIDI to Key
 // Stroke, and whatever comes next). The umbrella switches it on and off, gives it a section of the window, a few rows
 // in the menu-bar menu, and arms its hot keys only while Live is in front. A module owns its own files, state and
 // engines; it never reaches into another module.

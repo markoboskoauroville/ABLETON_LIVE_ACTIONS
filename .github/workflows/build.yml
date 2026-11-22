@@ -9,13 +9,17 @@ on:
 permissions:
   contents: write
 env:
-  APP: "Ableton Live Actions (Mantra)"
+  APP: "Ableton Live Assistant (Mantra)"
   VERSION_FILE: app/Common.swift
 jobs:
   build:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Test the Space decision (no Live needed)
+        run: |
+          mkdir -p "$RUNNER_TEMP/tt" && cp app/Transport.swift "$RUNNER_TEMP/tt/Transport.swift" && cp tests/transport_test.swift "$RUNNER_TEMP/tt/main.swift"
+          swiftc -o "$RUNNER_TEMP/transport_test" "$RUNNER_TEMP/tt/Transport.swift" "$RUNNER_TEMP/tt/main.swift" && "$RUNNER_TEMP/transport_test"
       - name: Build
         run: SIGN=- NO_INSTALL=1 ./build.sh
       - name: Pack

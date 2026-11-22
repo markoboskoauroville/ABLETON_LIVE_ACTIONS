@@ -1,10 +1,10 @@
 #!/bin/sh
-# build.sh: Ableton Live Actions (Mantra).app, swiftc straight, no Xcode, signed "Mantra Apps"
+# build.sh: Ableton Live Assistant (Mantra).app, swiftc straight, no Xcode, signed "Mantra Apps"
 # (MANTRA_MANIFEST mac-app-signing.md, swift-apps.md). The version is the one number in app/App.swift.
 set -e
 cd "$(dirname "$0")"
 V=$(sed -n 's/^let VERSION = \([0-9]*\)/\1/p' app/Common.swift)
-NAME="Ableton Live Actions (Mantra)"
+NAME="Ableton Live Assistant (Mantra)"
 APP="build/$NAME.app"
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 swiftc -O -swift-version 5 -parse-as-library -o "$APP/Contents/MacOS/AbletonLiveActions" app/*.swift

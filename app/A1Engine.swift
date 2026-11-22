@@ -87,6 +87,7 @@ final class A1Engine: ObservableObject {
     var lastLaunch = (at: 0.0, note: "")
     var tempo: Double?, numerator: Double?, tempoAt: Double = 0
     var playing = false
+    var playingAt = 0.0                              // when `playing` was last read from Live (Transport.trusted)
     var files: [String: (path: String, at: Double, fallback: Bool)] = [:]
     var written: [String: Double] = [:], lastBeats: [String: Double] = [:]
     var posState = (title: "", note: "", at: 0.0)
@@ -460,7 +461,7 @@ final class A1Engine: ObservableObject {
             }
             return pass
         }
-        // SPACE CONTINUES: Space is ⇧Space (Continue Playback), then ⌘⇧Space (the insert point to the playhead)
+        // SPACE: playing, ⇧Space stops and ⌘⇧Space plants the insert point on the playhead; stopped, a plain Space plays from the insert point (spaceDecide, Transport.swift)
         guard flag("space") else { return pass }
         if f.contains(.maskCommand) || f.contains(.maskAlternate) || f.contains(.maskControl) || f.contains(.maskSecondaryFn) { return pass }
         if typing { if down { note("Space", "typing (after ⌘R or ⌘F)", "typed, Live's own") }; return pass }
@@ -469,18 +470,47 @@ final class A1Engine: ObservableObject {
         if f.contains(.maskShift) { e.flags = []; return pass }      // Shift+Space goes on to Live as a plain Space: Play
         if !down { return nil }
         countSpace += 1
-        note("Space", role ?? "nothing", "Continue Playback")
+        note("Space", role ?? "nothing", "Space: deciding from Live's own state")
         let (pair, whence) = braceOf()
-        let intoLoop = pair != nil && (whence == "two ticked markers" || liveLoop.on == true) && !playing && !OSC.inside(lastBeats[knownTitle ?? ""], pair)
-        DispatchQueue.main.async {
-            if intoLoop, let p = pair {
-                self.wire.tell("/live/song/set/loop", [true])
-                self.wire.tell("/live/song/set/current_song_time", [p.a])
-                self.seen.did = "the playhead to the loop's start marker (\(self.clock(p.a))), then Continue Playback"
+        DispatchQueue.main.async { self.spaceDecide(pair, whence) }
+        return nil                                  // the plain space itself never reaches Live
+    }
+
+    // SPACE (v21, 22.11.2026): the decision is Transport.decide (Transport.swift, tested by the workflow). Live is asked
+    // afresh whether it plays (0.3 s); no answer: the cached reading only while it is fresh; else a plain Space.
+    // Playing: Shift+Space stops, then the insert point is planted on the playhead. Stopped: a plain Space, which starts
+    // at the insert point wherever Marko put it; nothing is planted afterwards and no stop position is remembered.
+    func spaceDecide(_ pair: OSC.Pair?, _ whence: String?) {
+        let cached = Transport.trusted(playing, readAt: playingAt, now: a1Time())
+        var decided = false
+        func go(_ fresh: Bool?) {
+            if decided { return }; decided = true
+            if let f = fresh { setPlaying(f) }
+            let reading = fresh ?? cached
+            let intoLoop = pair != nil && (whence == "two ticked markers" || liveLoop.on == true) && !OSC.inside(lastBeats[knownTitle ?? ""], pair)
+            let action = Transport.decide(playing: reading, intoLoop: intoLoop, follow: flag("follow"))
+            switch action {
+            case .playIntoLoop:
+                let p = pair!
+                wire.tell("/live/song/set/loop", [true])
+                wire.tell("/live/song/set/current_song_time", [p.a])
+                seen.did = "stopped: the playhead to the loop's start marker (\(clock(p.a))), then Continue Playback"
+                say("Space: play from the loop's start " + clock(p.a))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { self.post(["shift"], "space") }
+            case .playFromInsertPoint:
+                seen.did = "stopped: a plain Space, Live plays from the insert point"
+                say("Space: play from the insert point")
+                post([], "space")
+            case .plainSpace:
+                seen.did = "Live's state not known: a plain Space, nothing planted"
+                say("Space: play or stop")
+                post([], "space")
+            case .stopAndPlant, .stop:
+                seen.did = action == .stop ? "playing: Continue Playback (⇧Space) stops" : "playing: stopped (⇧Space), then the insert point to the playhead (⌘⇧Space)"
+                say("Space: stop")
+                post(["shift"], "space")
+                if action == .stopAndPlant { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.post(["cmd", "shift"], "space") } }
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + (intoLoop ? 0.12 : 0)) { self.post(["shift"], "space") }
-            self.say(intoLoop ? "Space: play from the loop's start " + self.clock(pair!.a) : "Space: continue, or stop")
-            if self.flag("follow") { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.post(["cmd", "shift"], "space"); self.seen.did = "Continue Playback (⇧Space), then the insert point to the playhead (⌘⇧Space)" } }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 self.wire.ask("/live/song/get/is_playing", wait: 1.5) { a, _ in
                     if let p = a?.first as? Bool { self.setPlaying(p); self.say(p ? "playing" : (self.flag("follow") ? "stopped: the insert point follows" : "stopped")) }
@@ -489,7 +519,9 @@ final class A1Engine: ObservableObject {
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.sample() }
         }
-        return nil                                  // the plain space itself never reaches Live
+        wire.ask("/live/song/get/is_playing", wait: 0.3) { a, _ in
+            if let p = a?.first as? Bool { go(p) } else if let p = a?.first as? Double { go(p != 0) } else { go(nil) }
+        }
     }
 
     // MARK: THE MEMORY: the insert point beside the set
@@ -530,6 +562,7 @@ final class A1Engine: ObservableObject {
         timeBlob.position(w, saved: saved)
     }
     func setPlaying(_ p: Bool) {
+        playingAt = a1Time()
         if p == playing { return }
         playing = p
         fast?.invalidate(); fast = nil

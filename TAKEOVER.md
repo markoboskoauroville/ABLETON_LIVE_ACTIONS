@@ -37,13 +37,13 @@ build's relaunch presses the app's OFF and not a module's. ✕ is `close`, PERMI
 
 ## From the former README (9.11.2026)
 
-# Ableton Live Actions (Mantra)
+# Ableton Live Assistant (Mantra) (until 22.11.2026: Ableton Live Actions (Mantra))
 
 **One app for everything that fits Ableton Live to Marko's hands.** Marko, 13.10.2026: *"Same principle as Davinci
 Resolve: we need to create Ableton Live actions. Right now everything what's related to Ableton Live can be under the
 same roof."*
 
-`/Applications/Ableton Live Actions (Mantra).app`, signed "Mantra Apps", built by `./build.sh`; the star opens it. A `LIVE` item in the menu bar reaches every module; the window has a section per module with ON / OFF.
+`/Applications/Ableton Live Assistant (Mantra).app`, signed "Mantra Apps", built by `./build.sh`; the star opens it. A `LIVE` item in the menu bar reaches every module; the window has a section per module with ON / OFF.
 
 | Module | From | What it does |
 |---|---|---|
@@ -54,7 +54,7 @@ same roof."*
 | AUDIO (v19, 7.11.2026) | `app/AudioActions.swift` (the MACROS module, a second list) + `helpers/audio_sync.py` | a new category of actions on audio. The first: **Sync Track 2 to Track 1**: the same music from two recorders, track 1 the master; found by the onset envelope of the whole files (Shazam-like), then measured to the sample every 20 s, audio 2 stretched onto track 1's clock (a dropout becomes a hard cut), and exported: two WAVs of exactly the same length in "<track 1 file> SYNC". RUN also puts the synced audio 2 on a new track at track 1's place and switches the old clip off; CHECK only measures. Without Live: `python3 helpers/audio_sync.py --a A.wav --b B.wav --out DIR` |
 | MACROS: Names between Live and the CQ12T (v10) | `helpers/macro_names.py`, `helpers/mixpad.py` | MIXER → LIVE (CQ MixPad CONFIG › INPUTS names → track names) or LIVE → MIXER (track names → each input's Name/Colour, 6 characters); CHECK lists both |
 
-**ON / OFF and ✕ (v3, 19.10.2026).** The first row of the window is ABLETON LIVE ACTIONS ON / OFF, the version, and ✕
+**ON / OFF and ✕ (v3, 19.10.2026).** The first row of the window is ABLETON LIVE ASSISTANT ON / OFF (ABLETON LIVE ACTIONS until v20), the version, and ✕
 at the far upper right (Marko: "In the top of every user interface, there will now be an on/off switch"; "It's far
 upper right corner. There is X to close the dialog in every dialog"). Running is ON; OFF stops every module and quits.
 ✕ (and the title bar's close) closes the window only: the app stays on, and the star's open or Settings… brings it back.
@@ -96,3 +96,26 @@ mac-swift.yml) builds on every push to main and releases `app.zip` as Latest. On
 
 ## Menu-bar hover card and pipes (v21, 16.11.2026)
 Marko: "with all my apps on the menu bar, make a comprehensive pop-up menu. When I hover over, I want to see what is it and what is it doing." and "for my apps always make a pipes before and after so I know where one app ends and other begins." `app/HoverCard.swift` is the shared kit file (MANTRA_MANIFEST kits/menubar-hover, rule modules/menubar-hover.md): hovering the item about 0.4 s shows a card with name, what it is, state and live lines; a thin grey pipe stands before and after the visible title. The app supplies its lines in the `HoverCard.attach(...)` closure. Test without a mouse: launch with `--hovercard-shot`. Change the lines in the app; change the module only in the kit.
+
+## v21, 22.11.2026: renamed to Ableton Live Assistant (Mantra), and the insert-point bug
+
+Marko, 22.11.2026 (momentaryupdates.md): rename to Ableton Live Assistant; stopped, he clicks the waveform to move the
+insert point and presses play: it starts from the OLD place.
+
+**Renamed:** app bundle, display name, window title, ON / OFF row, menu-bar tooltip and hover card, permission texts,
+build.sh, the workflow's APP. **Kept on purpose:** bundle id `community.auroville.abletonliveactions` and the signature
+"Mantra Apps" (Accessibility stays granted, UserDefaults stay); the executable `AbletonLiveActions` and the App struct
+of that name (SwiftUI saves the window frame under it, `pkill -x` scripts use it); `~/.config/live-actions.json` and
+`ableton-assistant-a1.json` (his settings); the repo `ABLETON_LIVE_ACTIONS` and the folder
+`~/Developer/ABLETON_LIVE_ACTIONS` (ABLETON_TEACHER, Queen's ableton.py and the SANTOSHI tools import
+`~/Developer/ABLETON_LIVE_ACTIONS/helpers/liveosc.py` by that path); the module names (ABLETON ASSISTANT A1 ...).
+v20 has no updater, so it cannot find v21: install v21 once from the release; from v21 on the app asks at start
+(`app/Updater.swift`, kit mac-updater, repo ABLETON_LIVE_ACTIONS, asset app.zip).
+
+**The bug:** `A1Engine.filter` turned every Space into Shift+Space (Continue Playback) followed by Cmd+Shift+Space. Continue
+Playback starts where Live last stopped, so a stopped Live ignored the insert point he had just clicked. Now
+`Transport.decide` (`app/Transport.swift`): playing -> Shift+Space stops, then the insert point is planted on the playhead
+(unchanged); stopped -> a plain Space (Live starts at the insert point wherever it is now, nothing planted after);
+loop case kept (the playhead goes to the loop's start, then Continue Playback). "Is Live playing" is asked of Live afresh
+at every Space (0.3 s); no answer: the cached reading only while it is under 1.5 s old; else a plain Space.
+Tests: `tests/transport_test.swift`, run by the workflow before the build (a model of Live's transport, not Live).
