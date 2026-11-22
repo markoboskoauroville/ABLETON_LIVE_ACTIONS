@@ -23,7 +23,7 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
         super.init()
         if shot {
             shotMode = true
-            _ = A1Engine()          // the CUSTOM SHORTCUTS tab shows his real rows; the engine is only loaded, never started
+            _ = A1Engine(); A1Engine.shared.tapOK = true          // the CUSTOM SHORTCUTS tab shows his real rows; the engine is only loaded, never started
             MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"),
                        ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShortcutsModule(), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE")]
             for m in MODULES { on[m.id] = true }
@@ -133,9 +133,14 @@ struct TabRow: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 4) { ForEach(MODULES.indices, id: \.self) { tab(MODULES[$0]) } }
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) { ForEach(0..<2, id: \.self) { tab(MODULES[$0]) } }
-                HStack(spacing: 4) { ForEach(2..<MODULES.count, id: \.self) { tab(MODULES[$0]) } }
+            VStack(alignment: .leading, spacing: 2) {              // two lines when the window is narrower
+                HStack(spacing: 4) { ForEach(0..<(MODULES.count + 1) / 2, id: \.self) { tab(MODULES[$0]) } }
+                HStack(spacing: 4) { ForEach((MODULES.count + 1) / 2..<MODULES.count, id: \.self) { tab(MODULES[$0]) } }
+            }
+            VStack(alignment: .leading, spacing: 2) {              // three lines at the minimum width: nothing is cut
+                ForEach(0..<(MODULES.count + 1) / 2, id: \.self) { r in
+                    HStack(spacing: 4) { ForEach((r * 2)..<min(r * 2 + 2, MODULES.count), id: \.self) { tab(MODULES[$0]) } }
+                }
             }
         }
         .padding(.horizontal, 18).padding(.vertical, 6).frame(maxWidth: .infinity, alignment: .leading)

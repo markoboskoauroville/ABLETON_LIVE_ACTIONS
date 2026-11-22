@@ -17,7 +17,8 @@ extension A1Engine {
     /// a plain-words name for a row: what it does, up to the first bracket or colon
     func shortcutName(_ m: [String: Any]) -> String {
         var s = (m["does"] as? String) ?? (m["blob"] as? String) ?? "\(m["from"] ?? "")"
-        for cut in [" (", ": "] { if let r = s.range(of: cut) { s = String(s[..<r.lowerBound]) } }
+        if let r = s.range(of: " (") { s = String(s[..<r.lowerBound]) }
+        if s.count > 70 { s = String(s.prefix(67)) + "…" }
         return s
     }
     func shortcutRows() -> [ShortcutRow] {
