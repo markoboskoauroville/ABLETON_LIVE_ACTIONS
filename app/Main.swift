@@ -28,14 +28,25 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
         }
         MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"), A1Module(), MackieModule(), MidiKeysModule()]   // MACROS first: the one he uses (27.10.2026)
         let saved = SETTINGS.read()["modules"] as? [String: Bool] ?? [:]
-        for m in MODULES { on[m.id] = saved[m.id] ?? m.defaultOn }
+        let shared = MidiShared.load()        // the MIDI modules' on / off is ONE state for both apps (MANTRA_MIDI_MODULES)
+        for m in MODULES { on[m.id] = MidiShared.ids.contains(m.id) ? (shared[m.id] ?? true) : (saved[m.id] ?? m.defaultOn) }
         let menu = NSMenu(); menu.delegate = self; item.menu = menu
         item.button?.title = "LIVE"; item.button?.toolTip = "Ableton Live Assistant: click for everything"
         HoverCard.attach(to: item, autoPipe: true) { [weak self] in
             guard let self = self else { return HoverCard.Content(name: "Ableton Live Assistant (Mantra)", what: "", state: "") }
             return HoverCard.Content(name: "Ableton Live Assistant (Mantra)", what: "Macros, audio actions, Mackie and MIDI keys for Live", state: (self.on.values.contains(true) ? "ON" : "OFF"), stateColor: .systemGreen, lines: ["Modules on: " + (self.on.filter { $0.value }.keys.sorted().joined(separator: ", ")), "Modules off: " + (self.on.filter { !$0.value }.keys.sorted().joined(separator: ", "))])
         }
-        for m in MODULES where on[m.id]! { m.setOn(true) }
+        for m in MODULES where on[m.id]! && !MidiShared.ids.contains(m.id) { m.setOn(true) }
+        MidiHost.shared.onChange = { [weak self] in
+            guard let self = self else { return }
+            for id in MidiShared.ids { self.on[id] = MidiHost.shared.on[id] ?? true }
+            self.rebindKeys(); self.paint()
+        }
+        MidiHost.shared.start(app: APP_NAME, mods: MODULES.compactMap { m in
+            if let k = m as? MackieModule { return MidiHost.Mod(id: k.id, setOn: { k.setOn($0) }, reload: { k.engine.load() }) }
+            if let k = m as? MidiKeysModule { return MidiHost.Mod(id: k.id, setOn: { k.setOn($0) }, reload: { k.engine.load() }) }
+            return nil
+        }, log: { AppLog.write($0) })
         let nc = NSWorkspace.shared.notificationCenter
         nc.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
             guard (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier == BUNDLE else { return }
@@ -53,6 +64,7 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
         rebindKeys(); paint()
     }
     func setModule(_ id: String, _ v: Bool) {
+        if MidiShared.ids.contains(id) { MidiHost.shared.setOn(id, v); on[id] = v; rebindKeys(); paint(); return }   // shared: the host starts or stops the engine in the owner
         on[id] = v; SETTINGS.change { $0["modules"] = self.on }
         MODULES.first { $0.id == id }?.setOn(v)
         rebindKeys(); paint()
@@ -103,6 +115,7 @@ struct ModuleSection: View {
                 Text(m.status()).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(AMBER)
             }
             Small(text: m.about)
+            if MidiShared.ids.contains(m.id), let l = MidiHost.shared.line { Text(l).font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(AMBER) }
             if u.on[m.id]! { m.settingsView() }
         }
     }
@@ -198,7 +211,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
         if !hasVisibleWindows, let w = s.windows.first(where: { $0.isMiniaturized }) { w.deminiaturize(nil); return false }
         return true
     }
-    func applicationWillTerminate(_ n: Notification) { AppLog.write("quit"); for m in MODULES { m.setOn(false) } }
+    func applicationWillTerminate(_ n: Notification) { AppLog.write("quit"); MidiHost.shared.shutdown(); for m in MODULES where !MidiShared.ids.contains(m.id) { m.setOn(false) } }
 }
 
 // A module that only has a name: the hidden render instance shows the tab row with the real titles and starts nothing.

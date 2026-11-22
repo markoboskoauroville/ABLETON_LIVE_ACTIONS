@@ -7,7 +7,7 @@ V=$(sed -n 's/^let VERSION = \([0-9]*\)/\1/p' app/Common.swift)
 NAME="Ableton Live Assistant (Mantra)"
 APP="build/$NAME.app"
 rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-swiftc -O -swift-version 5 -parse-as-library -o "$APP/Contents/MacOS/AbletonLiveActions" app/*.swift
+swiftc -O -swift-version 5 -parse-as-library -o "$APP/Contents/MacOS/AbletonLiveActions" app/*.swift shared/*.swift
 # the icon carries the version (version-visible.md): drawn again at every build
 (cd icon && swift make_icon.swift "$V" >/dev/null)
 I=build/AppIcon.iconset; rm -rf $I; mkdir -p $I

@@ -213,3 +213,13 @@ v25: `--studio-shot <png> --width N` renders the window off screen (rest, after 
 tab row to two lines, nothing cut) and the log has "key tap installed / disabled by macOS / re-enabled".
 Open points still: a real insert-point reading from Live (AbletonOSC handler), the jump-to-click question (Marko's, unanswered), and the
 two MIDI modules: decided 22.11.2026 to live in both apps as one shared module (being built).
+
+## v26, 22.11.2026: the MIDI modules are shared with MIDI Tools (Mantra)
+
+Marko, 22.11.2026: "All the MIDI modules should only be actually in both places. We are sharing the modules ... they also share the
+settings. It's the same thing, just in different views." The two tabs MIDI TO MK CONTROL and MIDI TO KEY STROKE now come from the
+public repo MANTRA_MIDI_MODULES (git submodule `shared/`, pinned by commit; `shared.sha256` is checked by the workflow, so this
+app and MIDI Tools build from byte-identical sources). One on / off state, `~/.config/mantra-midi-modules.json` (made from the old
+`live-actions.json` and `midi-tools.json` keys: ON); one engine: the owner lock `~/.config/mantra-midi-owner.lock`; the other app is
+a view and says "runs in <name>". A1MIDI.swift (the E16 blob) stays here only: it shows incoming MIDI through its own input port, no action.
+Log lines: "midi owner acquired / released", "<module> engine started / stopped here", "midi: runs in ...".

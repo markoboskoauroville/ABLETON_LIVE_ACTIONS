@@ -4,7 +4,8 @@ import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 
-let VERSION = 25
+let VERSION = 26
+let APP_SOURCE_DIR = "ABLETON_LIVE_ACTIONS"   // its folder under ~/Developer (the shared MIDI modules look for helpers there)
 let APP_NAME = "Ableton Live Assistant (Mantra)"   // renamed from Ableton Live Actions (Mantra), 22.11.2026; the bundle id, the executable and the settings files kept
 let RELEASES = "https://github.com/markoboskoauroville/ABLETON_LIVE_ACTIONS/releases/latest"
 let BUNDLE = "com.ableton.live"
