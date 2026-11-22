@@ -226,3 +226,9 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 
 ("for dent marker" = "from that marker"; his term: insert point.)
 **Status:** v21 built by GitHub (run 44987371950, green, 15 tests), installed 22.11.2026; the rename is done; the Space fix waits for Marko's hand test with Live.
+
+## 22.11.2026 (Marko, via the Fable master session): the bug described more exactly
+
+> I want to describe Ableton bug a little bit better. So issue is if I'm in the play mode, there is a playment... Play head is moving. Right? While it's moving, I'm clicking on different parts of the waveform. And when I'm clicking during playing, my Ableton Live assistant does not register these new locations. This is the bug.
+
+**Status:** saved first; designing (v22 or v23); nothing installed.
