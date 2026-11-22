@@ -367,6 +367,7 @@ final class A1Engine: ObservableObject {
         let s = CFMachPortCreateRunLoopSource(nil, t, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), s, .commonModes); CGEvent.tapEnable(tap: t, enable: true)
         tap = t; tapSource = s; tapOK = true; tick += 1
+        AppLog.write("key tap installed")
     }
     func note(_ key: String, _ focus: String, _ did: String) { seen = A1Seen(key: key, focus: focus, did: did, at: a1Time()) }
     func same(_ f: CGEventFlags, _ mods: [String]) -> Bool {
@@ -403,7 +404,7 @@ final class A1Engine: ObservableObject {
     func filter(_ type: CGEventType, _ e: CGEvent) -> Unmanaged<CGEvent>? {
         let pass = Unmanaged.passUnretained(e)
 
-        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput { tapGapAt = a1Time(); if let t = tap { CGEvent.tapEnable(tap: t, enable: true) }; return pass }
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput { tapGapAt = a1Time(); AppLog.write("key tap disabled by macOS (\(type == .tapDisabledByTimeout ? "timeout" : "user input"))"); if let t = tap { CGEvent.tapEnable(tap: t, enable: true); AppLog.write("key tap re-enabled") }; return pass }
         if type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown {
             typing = false
             if type == .leftMouseDown { noteClick(e) }

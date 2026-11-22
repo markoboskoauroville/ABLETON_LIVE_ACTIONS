@@ -14,10 +14,18 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
     @Published var tab: String = SETTINGS.read()["tab"] as? String ?? "macros" {
         didSet { SETTINGS.change { $0["tab"] = self.tab } }
     }
-    let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    lazy var item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)   // lazy: the --studio-shot instance never makes one
 
-    override init() {
+    override convenience init() { self.init(shot: false) }
+    // shot: the hidden render instance (--studio-shot): the window's texts only, no module started, no status item, no key tap, no MIDI
+    init(shot: Bool) {
         super.init()
+        if shot {
+            MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"),
+                       ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE")]
+            for m in MODULES { on[m.id] = true }
+            return
+        }
         MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"), A1Module(), MackieModule(), MidiKeysModule()]   // MACROS first: the one he uses (27.10.2026)
         let saved = SETTINGS.read()["modules"] as? [String: Bool] ?? [:]
         for m in MODULES { on[m.id] = saved[m.id] ?? m.defaultOn }
@@ -193,9 +201,57 @@ final class Delegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ n: Notification) { AppLog.write("quit"); for m in MODULES { m.setOn(false) } }
 }
 
+// A module that only has a name: the hidden render instance shows the tab row with the real titles and starts nothing.
+final class ShotStub: LiveModule {
+    let id: String, title: String, about = "", defaultOn = true
+    init(id: String, title: String) { self.id = id; self.title = title }
+    func setOn(_ on: Bool) {}; func liveCame() {}; func liveLeft() {}
+    func hotkeys() -> [(Chord, () -> Void)] { [] }; func menuItems() -> [NSMenuItem] { [] }
+    func settingsView() -> AnyView { AnyView(EmptyView()) }; func status() -> String { "" }
+}
+
+// `--studio-shot <png> --width N` (v25, 22.11.2026): a hidden instance, started by its executable, not by open: it has no
+// key tap, no MIDI, no updater, no status item and takes no focus (activation policy prohibited). It lays the window out
+// off screen at the given width and writes <png> (at rest), <png without .png>-top.png (after TOP) and ...-resized.png
+// (after a resize), the whole window with its title bar, then exits. Nothing is shown on the Mac's screens.
+func runStudioShot(_ out: String, width: CGFloat) {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.prohibited)
+    let u = Umbrella(shot: true)
+    let host = NSHostingView(rootView: SettingsView(u: u))
+    let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 820), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+    win.title = APP_NAME
+    win.contentMinSize = NSSize(width: 640, height: 480)
+    win.contentView = host
+    win.setContentSize(NSSize(width: max(width, 640), height: 820))
+    func settle() { host.layoutSubtreeIfNeeded(); RunLoop.main.run(until: Date().addingTimeInterval(0.6)); host.layoutSubtreeIfNeeded() }
+    func snap(_ path: String) {
+        enforceOneTitle(); settle()
+        guard let v = win.contentView?.superview, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { print("no picture for \(path)"); return }
+        v.cacheDisplay(in: v.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+        print("\(path)  \(Int(win.frame.width)) x \(Int(win.frame.height))  title shown: \(win.titleVisibility != .hidden)  level \(win.level.rawValue)")
+    }
+    let base = out.hasSuffix(".png") ? String(out.dropLast(4)) : out
+    snap(out)
+    floatWindows(true); snap(base + "-top.png")
+    win.setContentSize(NSSize(width: max(width, 640) + 140, height: 700)); snap(base + "-resized.png")
+    exit(0)
+}
+@main enum Launcher {
+    static func main() {
+        let a = CommandLine.arguments
+        if let i = a.firstIndex(of: "--studio-shot"), i + 1 < a.count {
+            let w = a.firstIndex(of: "--width").flatMap { $0 + 1 < a.count ? Double(a[$0 + 1]) : nil } ?? 820
+            runStudioShot(a[i + 1], width: CGFloat(w))
+        }
+        AbletonLiveActions.main()
+    }
+}
+
 // the struct keeps its old name: SwiftUI keys the saved window frame on it ("NSWindow Frame AbletonLiveActions.SettingsView-…"),
 // so a rename would forget where he put the window
-@main struct AbletonLiveActions: App {
+struct AbletonLiveActions: App {
     @NSApplicationDelegateAdaptor(Delegate.self) var delegate
     var body: some Scene {
         WindowGroup(APP_NAME) { SettingsView(u: UMBRELLA) }

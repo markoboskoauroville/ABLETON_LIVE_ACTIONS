@@ -4,7 +4,7 @@ import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 
-let VERSION = 24
+let VERSION = 25
 let APP_NAME = "Ableton Live Assistant (Mantra)"   // renamed from Ableton Live Actions (Mantra), 22.11.2026; the bundle id, the executable and the settings files kept
 let RELEASES = "https://github.com/markoboskoauroville/ABLETON_LIVE_ACTIONS/releases/latest"
 let BUNDLE = "com.ableton.live"
