@@ -189,3 +189,9 @@ Arrangement view, browser closed), no clicks, no mouse move, no key. Results (el
    files and the same MIDI sources: decide which app keeps them; nothing guards a double grab.
 4. Window captures at the minimum width 640, after TOP, after a resize and full screen: the window sits on another Space while
    Live is full screen, Accessibility lists no window for it, and nothing was resized without taking his screen.
+5. FIRST item of the next version: A1 writes no log line for its key tap. Log, with a time, when the tap is installed, when macOS
+   disables it (tapDisabledByTimeout / ByUserInput) and when it is enabled again, so "the Space filter is active" is read from
+   the log and not inferred from CGGetEventTapList.
+
+v24 installed 22.11.2026 05:19 (AX quit of v23 pid 3184 at 05:19:28, v24 pid 10390 started 05:19:29 with `open -g`, tap enabled
+when checked 6 s later, the updater line "v24 is the newest" at 05:19:33). v23 never saw a test: its log held only start and updater lines.
