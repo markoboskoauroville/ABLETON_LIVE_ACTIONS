@@ -238,3 +238,9 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 > All the MIDI modules should only be actually in both places. We are sharing the modules. We can do that. So because they are shared modules, they also share the settings. It's the same thing, just in different views.
 
 **Status:** v26 built by GitHub, installed, proven with MIDI Tools v4.
+
+## 22.11.2026 (Marko, via the Fable master session): custom shortcuts tab with CAPTURE, and the typing bug
+
+> For Ableton Live Assistant, we need to develop new tab called the custom shortcuts, which already exist. For example, one, two for zooming, command f for closing and opening the side panel, and so on. You you see what are my custom shortcut. I already put them in that tab, custom shortcuts, and you need to be able... I need to be able to capture any key to these commands I already predefined. So instead of one, two being zoom in, zoom out, it can be any key. I just click the capture and then this is changed. And then one more bug is there. For example, I'm in Ableton Live. I have my keyboards shortcuts. So these keys are not working inside Ableton. Like, I cannot type with them. And then, which makes sense because they are using as commands, but for example, when I press control space to search some software in my computer, I still am not able to type these letters. So I cannot type the software name. And how to go around this problem? I'm very annoyed with this. And also why not use these shortcuts also numbers and letters inside Ableton? When I'm inside the dialogue box, when I enter the names, etcetera, it should be free and I could enter any key. Only when I'm in the command mode, then I have command keys. Is that... That's logical? Please build this.
+
+**Status:** saved first. Part 1 (typing bug) first as its own version, then Part 2 (tab CUSTOM SHORTCUTS with CAPTURE).
