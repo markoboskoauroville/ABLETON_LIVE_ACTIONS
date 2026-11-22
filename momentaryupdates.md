@@ -225,4 +225,4 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 > We need to start working on Ableton Live actions. First renaming it to Ableton Live Assistant. Then you need to fix the bug when I'm in Ableton. So idea was where where play head stops, then the insert marker is jumping to that position, which works perfectly. But what doesn't work, if the Ableton Live is in a stop state and I manually move the insert marker anywhere by clicking on the waveform, then the song doesn't start to play for dent marker. It start to play from old marker.
 
 ("for dent marker" = "from that marker"; his term: insert point.)
-**Status:** saved first; building in v21.
+**Status:** v21 built by GitHub (run 44987371950, green, 15 tests), installed 22.11.2026; the rename is done; the Space fix waits for Marko's hand test with Live.
