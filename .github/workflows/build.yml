@@ -29,6 +29,17 @@ jobs:
           [ "$H" = "$(cat shared.sha256)" ] || { echo "FAIL: shared/ differs from shared.sha256"; exit 1; }
           mkdir -p "$RUNNER_TEMP/st" && cp shared/SharedPure.swift "$RUNNER_TEMP/st/" && cp shared/tests/shared_test.swift "$RUNNER_TEMP/st/main.swift"
           swiftc -o "$RUNNER_TEMP/shared_test" "$RUNNER_TEMP/st/SharedPure.swift" "$RUNNER_TEMP/st/main.swift" && "$RUNNER_TEMP/shared_test"
+      - name: Command mode or typing (the decision, and the mutations that must fail)
+        run: |
+          mkdir -p "$RUNNER_TEMP/km" && cp app/KeyMode.swift "$RUNNER_TEMP/km/KeyMode.swift" && cp tests/keymode_test.swift "$RUNNER_TEMP/km/main.swift"
+          swiftc -o "$RUNNER_TEMP/km_test" "$RUNNER_TEMP/km/KeyMode.swift" "$RUNNER_TEMP/km/main.swift" && "$RUNNER_TEMP/km_test"
+          for M in 's/if focus.live == false {/if false {/' 's/if let r = focus.role, KeyMode.textRoles.contains(r) {/if false {/' 's/if focus.dialog {/if false {/' 's/if typingFlag {/if false {/'; do
+            mkdir -p "$RUNNER_TEMP/kmm" && sed "$M" app/KeyMode.swift > "$RUNNER_TEMP/kmm/KeyMode.swift"
+            cmp -s app/KeyMode.swift "$RUNNER_TEMP/kmm/KeyMode.swift" && { echo "the mutation $M did not apply"; exit 1; }
+            cp tests/keymode_test.swift "$RUNNER_TEMP/kmm/main.swift"
+            swiftc -o "$RUNNER_TEMP/kmm_test" "$RUNNER_TEMP/kmm/KeyMode.swift" "$RUNNER_TEMP/kmm/main.swift"
+            if "$RUNNER_TEMP/kmm_test" >/dev/null; then echo "BAD: the tests did not catch: $M"; exit 1; else echo "GOOD: the tests failed when the check was removed: $M"; fi
+          done
       - name: Pins (name, bundle id, settings files, one title, no app OFF)
         run: bash tests/pins.sh
       - name: The pins hold (mutation) - stopped goes back to Continue Playback, the test MUST fail

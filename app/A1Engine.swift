@@ -71,6 +71,9 @@ final class A1Engine: ObservableObject {
     var tap: CFMachPort?, tapSource: CFRunLoopSource?, tapRetry: Timer?
     var tapOK = false
     var lastClickAt = 0.0, playStartAt = 0.0, tapGapAt = 0.0   // his clicks in Live's arrangement, the play's start, a gap of the key tap (Transport.userMoved)
+    var focusCache: (FocusReading, Double)?             // the last reading of where the keyboard focus is (KeyMode), and when
+    var focusCosts: [Double] = []                      // milliseconds of each fresh reading, reported to the log every 100
+    var modeWord = "COMMAND", modeWhy = ""             // shown in the A1 tab
     var stopHold: Double?                              // after a stop that planted nothing: the stop position, which is NOT his insert point
     var byCode: [Int: [[String: Any]]] = [:]
     var typing = false
@@ -406,7 +409,7 @@ final class A1Engine: ObservableObject {
 
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput { tapGapAt = a1Time(); AppLog.write("key tap disabled by macOS (\(type == .tapDisabledByTimeout ? "timeout" : "user input"))"); if let t = tap { CGEvent.tapEnable(tap: t, enable: true); AppLog.write("key tap re-enabled") }; return pass }
         if type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown {
-            typing = false
+            typing = false; focusCache = nil
             if type == .leftMouseDown { noteClick(e) }
             return pass
         }
@@ -417,13 +420,33 @@ final class A1Engine: ObservableObject {
         let isSpace = code == A1KEY["space"]!
         let f = e.flags
         let down = type == .keyDown
-        let ends = [A1KEY["return"]!, A1KEY["padenter"]!, A1KEY["escape"]!].contains(code)
+        let ends = [A1KEY["return"]!, A1KEY["padenter"]!, A1KEY["escape"]!, A1KEY["tab"]!].contains(code)
+        if down && (f.contains(.maskCommand) || f.contains(.maskControl)) { focusCache = nil }   // a launcher or a search may open on this key: read the focus afresh
         let isR = code == A1KEY["r"]! && f.contains(.maskCommand) && !f.contains(.maskAlternate) && !f.contains(.maskControl) && !f.contains(.maskShift)
         if maps == nil && !isSpace && !ends && !isR { return pass }
         guard let front = NSWorkspace.shared.frontmostApplication, front.bundleIdentifier == BUNDLE else { return pass }
         let target = e.getIntegerValueField(.eventTargetUnixProcessID)
         if target > 0 && pid_t(target) != front.processIdentifier { return pass }
+
         if ends { if down && typing { typing = false; say("typing ended") }; return pass }
+        // COMMAND MODE OR TYPING (v27, 22.11.2026): his keys are commands only while the keyboard focus is Live's own and not a text entry
+        if down {
+            let noMods = !(f.contains(.maskCommand) || f.contains(.maskAlternate) || f.contains(.maskControl) || f.contains(.maskSecondaryFn))
+            let mapped = isR || (maps?.contains { same(f, mapMods($0)) } ?? false) || (isSpace && noMods && flag("space"))
+            if mapped {
+                let fr = currentFocus()
+                let d = KeyMode.decide(frontIsLive: true, focus: fr, typingFlag: typing, isMappedKey: true)
+                modeWord = KeyMode.word(d); modeWhy = KeyMode.why(d)
+                let label = isSpace ? "Space" : (isR ? "⌘R" : ((maps?.first?["from"] as? String) ?? "\(code)"))
+                AppLog.write("key \(label): " + (d == .command ? "command" : "free: " + KeyMode.why(d)))
+                if case .free(let why) = d {
+                    note(label, "typing", "free: " + why)
+                    if isR && fr?.live == true && !typing && menuEnabled(["Edit", "Rename"]) != false { typing = true; say("typing: every key is yours") }   // Edit > Rename starts typing in Live
+                    return pass
+                }
+            }
+        }
+
         if isR {                                       // Edit › Rename: he types a name until Return, Escape or a click
             if down && menuEnabled(["Edit", "Rename"]) != false { typing = true; note("⌘R", "Rename", "typing begins"); say("typing: every key is yours") }
             return pass
@@ -483,6 +506,76 @@ final class A1Engine: ObservableObject {
         let (pair, whence) = braceOf()
         DispatchQueue.main.async { self.spaceDecide(pair, whence) }
         return nil                                  // the plain space itself never reaches Live
+    }
+
+    // WHERE THE KEYBOARD FOCUS IS (v27): the system-wide focused element and its owner; when the system will not say, the other
+    // apps' floating windows (a launcher or Spotlight panel takes the keys while Live stays the front app) and their focused
+    // field; then Live's own focused element and window. About 2 ms (measured), so it is read afresh at every command key unless
+    // the last reading is under 80 ms old.
+    func readFocus() -> FocusReading? {
+        var r = FocusReading()
+        guard let app = liveApp(), let a = live() else { return nil }
+        let pid = app.processIdentifier
+        let sys = axBounded(AXUIElementCreateSystemWide()); AXUIElementSetMessagingTimeout(sys, 0.05)
+        var el: AXUIElement? = axEl(sys, kAXFocusedUIElementAttribute)
+        if let e = el {
+            var p: pid_t = 0; AXUIElementGetPid(e, &p)
+            if p != pid { r.live = false; r.otherApp = NSRunningApplication(processIdentifier: p)?.localizedName ?? "another app"; r.role = axString(e, kAXRoleAttribute); return r }
+        } else if let other = otherHolder(pid) { r.live = false; r.otherApp = other; return r }
+        if el == nil { el = axEl(a, kAXFocusedUIElementAttribute) }
+        guard let f = el.map(axBounded) else { r.live = nil; return r }
+        r.live = true
+        r.role = axString(f, kAXRoleAttribute)
+        var settable: DarwinBoolean = false
+        if ax(f, kAXValueAttribute) is String { AXUIElementIsAttributeSettable(f, kAXValueAttribute as CFString, &settable); r.editable = settable.boolValue }
+        // a dialog, a sheet or a window of Live other than its main one
+        if let w = axEl(f, kAXWindowAttribute) ?? axEl(a, kAXFocusedWindowAttribute) {
+            let sub = axString(w, kAXSubroleAttribute)
+            if let s = sub, s != "AXStandardWindow" { r.dialog = true }
+            if let m = ax(w, kAXMainAttribute) as? Bool, !m { r.dialog = true }
+        }
+        var up = axEl(f, kAXParentAttribute)
+        for _ in 0..<8 { guard let u = up else { break }; if axString(u, kAXRoleAttribute) == "AXSheet" { r.dialog = true; break }; up = axEl(u, kAXParentAttribute) }
+        return r
+    }
+    /// Another app with a floating window above Live whose focused element is a text entry (Launcher (Mantra), Spotlight ...)
+    func otherHolder(_ livePid: pid_t) -> String? {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] else { return nil }
+        var seen = Set<pid_t>()
+        for w in list {
+            guard let pid = (w[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, pid != livePid, pid != getpid(), !seen.contains(pid) else { continue }
+            let layer = (w[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
+            guard layer >= 3, !(20...25).contains(layer) else { continue }
+            guard let b = w[kCGWindowBounds as String] as? [String: Any], (b["Width"] as? NSNumber)?.doubleValue ?? 0 >= 80, (b["Height"] as? NSNumber)?.doubleValue ?? 0 >= 24 else { continue }
+            if let al = (w[kCGWindowAlpha as String] as? NSNumber)?.doubleValue, al <= 0 { continue }
+            seen.insert(pid)
+            let ax = axBounded(AXUIElementCreateApplication(pid)); AXUIElementSetMessagingTimeout(ax, 0.05)
+            if let fe = axEl(ax, kAXFocusedUIElementAttribute), let role = axString(fe, kAXRoleAttribute), KeyMode.textRoles.contains(role) {
+                return NSRunningApplication(processIdentifier: pid)?.localizedName ?? (w[kCGWindowOwnerName as String] as? String) ?? "another app"
+            }
+            if seen.count >= 6 { break }
+        }
+        return nil
+    }
+    func currentFocus() -> FocusReading? {
+        let now = a1Time()
+        if let c = focusCache, now - c.1 < 0.08 { return c.0 }
+        let t0 = DispatchTime.now().uptimeNanoseconds
+        let r = readFocus()
+        focusCosts.append(Double(DispatchTime.now().uptimeNanoseconds - t0) / 1e6)
+        if focusCosts.count >= 100 {
+            let s = focusCosts.sorted()
+            AppLog.write(String(format: "focus read, 100 command keys: median %.1f ms, worst %.1f ms", s[50], s[99])); focusCosts = []
+        }
+        if let r = r { focusCache = (r, now) } else { focusCache = nil }
+        return r
+    }
+    /// the word shown in the A1 tab, refreshed once a second while Live is in front
+    func refreshMode() {
+        guard liveFront() else { if modeWord != "TYPING" { modeWord = "TYPING"; modeWhy = "Live is not in front"; tick += 1 }; return }
+        let d = KeyMode.decide(frontIsLive: true, focus: readFocus(), typingFlag: typing, isMappedKey: true)
+        let w = KeyMode.word(d), y = KeyMode.why(d)
+        if w != modeWord || y != modeWhy { modeWord = w; modeWhy = y; tick += 1 }
     }
 
     // HIS CLICK (v23, 22.11.2026): while Live plays he clicks on the waveform and the insert point moves; Live gives no reading
@@ -698,6 +791,7 @@ final class A1Engine: ObservableObject {
             if !wire.isPending("/live/song/get/signature_numerator") { wire.ask("/live/song/get/signature_numerator", wait: 2) { a, _ in if let n = a?.first as? Double { self.numerator = n } } }
         }
         if a1Time() - cuesAt > 2 { askCues() }
+        refreshMode()
         sample()
     }
     func samplerStart() {

@@ -83,3 +83,8 @@ Scored 10 of 10 for the rename and the Space fix: v25 installed and running, rel
 ## 22.11.2026 (v26): shared MIDI modules
 See MANTRA_MIDI_MODULES LESSONS. In this app: A1's E16 reader (A1MIDI) opens a second input port on the same sources: it only shows incoming MIDI, so it is harmless
 (two readers of one source, one action).
+
+## 22.11.2026 (v27): a key filter must ask WHO has the keyboard, not who is in front
+A non-activating panel (a launcher, Spotlight) takes the keys while the previous app stays frontmost; asking only the front app's own focus
+eats the letters. Ask the system-wide focus and its owner at the moment of the key (about 2 ms), fall back to the floating windows of other
+apps, and when unsure let the key through: a command that does not fire is small, a letter that cannot be typed is the bug.

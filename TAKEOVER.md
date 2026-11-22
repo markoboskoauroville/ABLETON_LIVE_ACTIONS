@@ -223,3 +223,19 @@ app and MIDI Tools build from byte-identical sources). One on / off state, `~/.c
 `live-actions.json` and `midi-tools.json` keys: ON); one engine: the owner lock `~/.config/mantra-midi-owner.lock`; the other app is
 a view and says "runs in <name>". A1MIDI.swift (the E16 blob) stays here only: it shows incoming MIDI through its own input port, no action.
 Log lines: "midi owner acquired / released", "<module> engine started / stopped here", "midi: runs in ...".
+
+## v27, 22.11.2026: command mode or typing (Part 1 of his request)
+
+Marko: "when I press control space to search some software in my computer, I still am not able to type these letters ... When I'm
+inside the dialogue box ... it should be free ... Only when I'm in the command mode, then I have command keys."
+**Cause:** `A1Engine.filter` acted on his keys whenever `NSWorkspace.frontmostApplication` was Live, and asked only Live's OWN focused
+element (`focusRole()`, A1Engine.swift ~line 274 and 441): Launcher (Mantra)'s `BoxPanel` is a non-activating key panel (STAR_LAUNCHER
+Sources/Box.swift), so Live stays the front app and its own focus is still the arrangement, therefore every 1, 2 and letter was eaten
+(case a). Inside Live the check was a text role on Live's focus only and the `typing` flag set by Cmd+R and Cmd+F; dialogs, sheets,
+other windows and Live's own fields that report no text role slipped through (case b).
+**Now:** `KeyMode.decide` (app/KeyMode.swift, pure, tested in the workflow): a key is a command only when Live is in front, the focused
+element (system-wide, `readFocus`) belongs to Live, is not a text role (AXTextField, AXTextArea, AXComboBox, AXSearchField) nor a settable
+string, the focus is not in a dialog / sheet / a window of Live other than the main one, and the rename-or-search typing flag is off.
+When the system-wide focus cannot be read, the floating windows of other apps are asked for a focused text field (`otherHolder`);
+when nothing is known the key is free. Every decision is in app.log ("key 1: command" / "key 1: free: <reason>") and the A1 tab shows
+COMMAND or TYPING with the reason. Tab now ends typing like Return and Escape.
