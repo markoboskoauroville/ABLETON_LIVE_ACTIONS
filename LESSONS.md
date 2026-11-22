@@ -63,3 +63,10 @@ the assistant does not register it") was the one that mattered, and it is the sa
 is the master, so nothing the assistant does (a stop, a plant, a file write) may overwrite a place he chose by hand. Before
 fixing a bug from a first description, list every state of the transport (playing, stopped) and every way he can move the
 insert point in each (click, key, MIDI), and ask about the one not named.
+
+## Round 2 (22.11.2026): v23 and v24
+v23: his click while Live plays is respected (the stop plants only when he is known not to have clicked), with a tap-and-hit-test
+signal. Installed 22.11.2026 05:15 (AX quit of v21, v23 in, started with `open -g`). v24: the hit-test rule rewritten from a read-only
+Accessibility probe of Live (1600 points): plain groups (transport, status, Device Detail, track headers) are not controls by role,
+so "not a control" was a wrong rule; an allow-list (the arrangement canvas) is the right one. Lesson: probe the real UI before writing a
+rule about what is under the pointer; Live's AX tree is rich (Arrangement, Track Headers, Loop Brace, Device Detail, Status).

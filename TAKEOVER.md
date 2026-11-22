@@ -160,3 +160,32 @@ window, not on a control by Accessibility role; `Transport.clickCounts`). After 
 not his insert point: `stopHold` keeps `sample()` from writing the stop position into the file beside the set until he moves
 it. Not built: a jump of the playback to the click (the pointer cannot be turned into beats); the log lines
 "click in Live while playing: role ..." in ~/Library/Logs/Ableton Live Assistant (Mantra)/app.log show what each click was.
+
+## v24, 22.11.2026: what Live's Accessibility says under the pointer (read-only probe)
+
+Probe: 1600 `AXUIElementCopyElementAtPosition` hit-tests on a 40 x 40 grid over Live 12's main window (set ETHNO_ORCHESTRA,
+Arrangement view, browser closed), no clicks, no mouse move, no key. Results (element role, title; parents):
+- **Arrangement timeline** (the waveform / clip area, half of all points): AXStaticText "Clip/Device Drop Area ..." under AXGroup
+  "Arrangement". Clips and empty space answer the same. This is the only thing a click counts on.
+- **Track headers** (names): AXRow / AXOutline "Track Headers". **Mixer strip beside them:** AXSlider "Track Volume" and
+  "Track Pan", AXCheckBox "Track Activator" and "Solo/Cue", AXPopUpButton "Input Type / Input Channel / Output Channel",
+  AXTextField "Return Track Title Bar", AXGroup per track. **Loop brace / ruler:** AXGroup "Loop Brace". **Arrangement Controls**, "Main",
+  "Waveform Vertical Zoom Level" (AXSlider), "Optimize Arrangement Width" (AXCheckBox). **Transport bar and its buttons:** plain
+  AXGroup without a title at the top of the window (no AXButton). **Status bar:** AXGroup "Status". **Device Detail:** AXGroup.
+- Browser: not open in this layout, not probed.
+- Consequence: v23 (any element that is not a control) would have counted the transport bar, the track headers, Device Detail
+  and the status bar as moving the insert point, because they are plain groups. v24 counts only AXStaticText under "Arrangement"
+  and not under "Track Headers", "Loop Brace" or "Device Detail" (`Transport.clickCounts`). Mixer faders, solo, popups, the
+  transport and the track names are told apart from waveform clicks. A click on the timeline's ruler (the Loop Brace group)
+  is not counted: it moves the playhead, so the plant after a stop is right. If Live changes its AX names, no click counts and
+  the behaviour falls back to v21 (plant always); the log line "click in Live while playing: role ... above it ..." shows it.
+
+## Open points (written 22.11.2026, not to do now)
+1. A real reading of the insert point (a small AbletonOSC handler for the song's start / insert position) would replace the
+   tap guess and also catch keyboard and MIDI moves. To try only when Live is idle and Marko agrees; first check that Live's
+   API exposes it.
+2. The jump-to-click question, still Marko's to answer: when he clicks during playback, should playback jump there at once?
+3. The two MIDI modules (MIDI TO MK CONTROL, MIDI TO KEY STROKE) live in two apps (this one and MANTRA_MIDI_TOOLS), same settings
+   files and the same MIDI sources: decide which app keeps them; nothing guards a double grab.
+4. Window captures at the minimum width 640, after TOP, after a resize and full screen: the window sits on another Space while
+   Live is full screen, Accessibility lists no window for it, and nothing was resized without taking his screen.

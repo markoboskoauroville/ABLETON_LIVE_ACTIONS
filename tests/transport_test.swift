@@ -124,17 +124,24 @@ do {
     l.press(true, moved: false); l.press(false)
     ok(l.playhead == 43, "no click: stop plants at 43 and play starts there, got \(l.playhead)")
 }
-// which clicks count
+// which clicks count (after the AX probe of Live 12, 22.11.2026)
 do {
     let c = Transport.clickCounts
-    ok(c(true, true, true, nil), "a click on the arrangement (no role) counts")
-    ok(c(true, true, true, "AXGroup"), "a click on a group counts")
-    ok(!c(true, false, true, nil), "a click while another app is in front does not count")
-    ok(!c(true, true, false, nil), "a click outside Live's window does not count")
-    ok(!c(false, true, true, nil), "a right or other button does not count")
-    ok(!c(true, true, true, "AXSlider"), "the mixer's slider does not count")
-    ok(!c(true, true, true, "AXButton"), "a transport button does not count")
-    ok(!c(true, true, true, "AXMenuItem"), "a menu item does not count")
+    let canvas = ["Arrangement", ""], mixerSlider = ["1-01 Song", "Arrangement"]
+    ok(c(true, true, true, "AXStaticText", canvas), "the arrangement canvas counts")
+    ok(!c(true, false, true, "AXStaticText", canvas), "a click while another app is in front does not count")
+    ok(!c(true, true, false, "AXStaticText", canvas), "a click outside Live's window does not count")
+    ok(!c(false, true, true, "AXStaticText", canvas), "a right or other button does not count")
+    ok(!c(true, true, true, "AXSlider", mixerSlider), "the mixer's Track Volume slider does not count")
+    ok(!c(true, true, true, "AXPopUpButton", mixerSlider), "a track's popup does not count")
+    ok(!c(true, true, true, "AXCheckBox", mixerSlider), "Solo or Activator does not count")
+    ok(!c(true, true, true, "AXGroup", ["ETHNO_ORCHESTRA", "Live"]), "the transport bar (a plain group) does not count")
+    ok(!c(true, true, true, "AXGroup", ["Status", "ETHNO_ORCHESTRA"]), "the status bar does not count")
+    ok(!c(true, true, true, "AXGroup", ["Device Detail", ""]), "Device Detail does not count")
+    ok(!c(true, true, true, "AXStaticText", ["Track Headers", "Arrangement"]), "a track header's name does not count")
+    ok(!c(true, true, true, "AXGroup", ["Loop Brace", "Arrangement"]), "the loop brace does not count")
+    ok(!c(true, true, true, "AXStaticText", ["", "ETHNO_ORCHESTRA", "Live"]), "a text outside the arrangement does not count")
+    ok(!c(true, true, true, nil, canvas), "no role: not counted (the log shows it; the rule is the probe's)")
 }
 // when the click is read as 'since this play began'
 do {

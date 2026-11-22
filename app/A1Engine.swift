@@ -497,10 +497,12 @@ final class A1Engine: ObservableObject {
             var el: AXUIElement?
             _ = AXUIElementCopyElementAtPosition(a, Float(p.x), Float(p.y), &el)
             let role = el.flatMap { axString($0, kAXRoleAttribute) }
+            var chain: [String] = [], up = el.flatMap { axEl($0, kAXParentAttribute) }
+            for _ in 0..<8 { guard let u = up else { break }; chain.append(axString(u, kAXTitleAttribute) ?? axString(u, kAXDescriptionAttribute) ?? ""); up = axEl(u, kAXParentAttribute) }
             let inside = ((ax(a, kAXWindowsAttribute) as? [AXUIElement]) ?? []).contains { w in axFrame(axBounded(w))?.contains(p) == true }
-            let counts = Transport.clickCounts(left: true, liveFront: true, insideLiveWindow: inside, role: role)
+            let counts = Transport.clickCounts(left: true, liveFront: true, insideLiveWindow: inside, role: role, ancestors: chain)
             if counts { self.lastClickAt = max(self.lastClickAt, at) }
-            if self.playing { AppLog.write("click in Live while playing: role \(role ?? "none"), inside the window \(inside), counts as moving the insert point: \(counts)") }
+            if self.playing { AppLog.write("click in Live while playing: role \(role ?? "none"), above it \(chain.filter { !$0.isEmpty }.prefix(3).joined(separator: " < ")), inside the window \(inside), counts as moving the insert point: \(counts)") }
         }
     }
 

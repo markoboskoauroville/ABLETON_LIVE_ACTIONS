@@ -44,16 +44,17 @@ enum Transport {
         return lastClickAt > playStartAt
     }
 
-    /// Does a mouse-down count as "he moved the insert point"? Only a left click, with Live in front, inside Live's own
-    /// window, on something that is not a control (button, slider, menu, field ...). Another app, the mixer's controls
-    /// and the transport buttons do not count. `role` is Accessibility's role of the element under the pointer (nil when
-    /// Live's custom-drawn view gives none, which is the arrangement itself).
-    static let controlRoles: Set<String> = ["AXButton", "AXCheckBox", "AXRadioButton", "AXSlider", "AXPopUpButton", "AXMenuButton",
-        "AXMenuItem", "AXMenu", "AXMenuBar", "AXMenuBarItem", "AXTextField", "AXTextArea", "AXComboBox", "AXScrollBar",
-        "AXIncrementor", "AXValueIndicator", "AXToolbar", "AXTabGroup", "AXDisclosureTriangle"]
-    static func clickCounts(left: Bool, liveFront: Bool, insideLiveWindow: Bool, role: String?) -> Bool {
-        guard left, liveFront, insideLiveWindow else { return false }
-        if let r = role, controlRoles.contains(r) { return false }
-        return true
+    /// Does a mouse-down count as "he moved the insert point"? v24 (22.11.2026), from a read-only Accessibility probe of Live 12's
+    /// window (1600 hit-tests, no clicks): the arrangement's timeline canvas answers as an AXStaticText ("Clip/Device Drop
+    /// Area ...") whose parent chain holds the AXGroup titled "Arrangement". The track headers (AXRow / AXOutline "Track
+    /// Headers"), the mixer strip beside them (AXSlider, AXPopUpButton, AXCheckBox), the loop brace, the transport bar and the
+    /// status bar (plain AXGroups), and the Device Detail group answer as something else. So a click counts only when: a left
+    /// click, Live in front, inside Live's window, the element under the pointer is an AXStaticText, and "Arrangement" is among
+    /// its ancestors and "Track Headers", "Loop Brace" and "Device Detail" are not. `ancestors` are the titles or descriptions
+    /// of the parent chain, nearest first.
+    static func clickCounts(left: Bool, liveFront: Bool, insideLiveWindow: Bool, role: String?, ancestors: [String]) -> Bool {
+        guard left, liveFront, insideLiveWindow, role == "AXStaticText" else { return false }
+        guard ancestors.contains("Arrangement") else { return false }
+        return !ancestors.contains("Track Headers") && !ancestors.contains("Loop Brace") && !ancestors.contains("Device Detail")
     }
 }
