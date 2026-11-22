@@ -129,7 +129,7 @@ struct A1View: View {
                 let gets = via.map(a1PathWords) ?? (m["gets"] as? String) ?? a1Chord(mapMods(m, "tomods"), "\(m["to"] ?? "")")
                 HStack(alignment: .top, spacing: 8) {
                     Tick(on: (m["off"] as? Bool) != true) { e.setMap(i, (m["off"] as? Bool) == true) }
-                    Text(a1Chord(mapMods(m), "\(m["from"] ?? "")")).font(.system(size: 14, weight: .semibold, design: .monospaced)).foregroundColor(.white).frame(width: 70, alignment: .leading)
+                    Text(e.effectiveChord(m)).font(.system(size: 14, weight: .semibold, design: .monospaced)).foregroundColor(.white).frame(width: 70, alignment: .leading)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(gets).font(.system(size: 11, design: .monospaced)).foregroundColor(GREEN)
                         Text((m["does"] as? String) ?? "").font(.system(size: 11)).foregroundColor(.white).fixedSize(horizontal: false, vertical: true)

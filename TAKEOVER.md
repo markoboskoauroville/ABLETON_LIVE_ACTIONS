@@ -239,3 +239,23 @@ string, the focus is not in a dialog / sheet / a window of Live other than the m
 When the system-wide focus cannot be read, the floating windows of other apps are asked for a focused text field (`otherHolder`);
 when nothing is known the key is free. Every decision is in app.log ("key 1: command" / "key 1: free: <reason>") and the A1 tab shows
 COMMAND or TYPING with the reason. Tab now ends typing like Return and Escape.
+
+## v28, 22.11.2026: CUSTOM SHORTCUTS with CAPTURE, I and O as in an editing program, the Launcher's announcement
+
+**Custom shortcuts** (Marko: "capture any key to these commands I already predefined"): they were A1's key mappings (A1_DEFAULT_MAPS plus his own
+in ~/.config/ableton-assistant-a1.json, the rows of THE KEYS in the A1 tab, which stay). The new tab CUSTOM SHORTCUTS (`app/ShortcutsTab.swift`) has a row
+per mapping: the key, CAPTURE (the next key or combination, Esc cancels, 15 s), RESET, RESET ALL. His keys are overrides in
+`~/.config/ableton-assistant-shortcuts.json` (schema 1, atomic, by physical key code with the layout's label; a missing file = the original keys; a bad one
+= the originals and a note in the tab and the log). The model is pure (`app/Shortcuts.swift`, tests/shortcuts_test.swift): capture frees the old key,
+clash with another of his keys offers SWAP, a Mac shortcut or a key of Live's menu (read from Live) is told first with SAVE ANYWAY / CANCEL. The capture
+swallows the key (it never reaches Live) and `index()` uses the new key at once.
+**I and O** (Marko: "I want to make them like in any editing software ... in English is I o"): `LoopMarks.decide` (app/LoopMarks.swift, pure, tested).
+I = the loop brace's start where he is now, O = its end there and the loop on. Where he is now: `current_song_time` asked at the press; while playing
+half of the round trip is taken back at the tempo (`LoopMarks.atPress`; the log says the round trip in ms and what was taken back), stopped = the insert
+point. Rules: I keeps the OUT, O keeps the IN; the new mark wins: when it would cross the other end, the other end moves so the brace keeps its length
+(a bar when there was none), never below 0; the first O turns the loop on, I leaves the switch alone; snapping is per key (SNAP OFF / BEAT / BAR in the
+tab, default OFF); the ticked-marker loop and I / O: the last action wins (as before: I / O clear the ticks, ticking clears the marks). The transient
+versions are ⇧I and ⇧O (free in Live's menus and in his map). The brace is set with the existing `sendBrace` (start 0, length, start). Not verified in Live:
+what Live does with the playhead when the loop start moves while the playhead is outside the new loop.
+**Launcher's box:** `com.mantra.launcher.box` (userInfo open, pid) read in `A1Engine.watchLauncher`: while open every key is free, ended by "closed", by a
+click in Live, or after 60 s. STAR_LAUNCHER v6 posts it (source committed; it is a private repo and cannot be built on GitHub until it is made public).

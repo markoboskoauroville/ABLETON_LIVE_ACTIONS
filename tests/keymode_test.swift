@@ -4,8 +4,8 @@ import Foundation
 var pass = 0, fail = 0
 func ok(_ c: Bool, _ what: String) { if c { pass += 1 } else { fail += 1; print("FAIL  \(what)") } }
 let arrangement = FocusReading(live: true, otherApp: nil, role: "AXStaticText", editable: false, dialog: false)
-func d(front: Bool = true, _ f: FocusReading?, typing: Bool = false, mapped: Bool = true) -> KeyDecision {
-    KeyMode.decide(frontIsLive: front, focus: f, typingFlag: typing, isMappedKey: mapped)
+func d(front: Bool = true, _ f: FocusReading?, typing: Bool = false, launcherBox: Bool = false, mapped: Bool = true) -> KeyDecision {
+    KeyMode.decide(frontIsLive: front, focus: f, typingFlag: typing, launcherBox: launcherBox, isMappedKey: mapped)
 }
 // his command mode
 ok(d(arrangement) == .command, "Live in front, focus on the arrangement: his keys are commands (1 and 2 zoom)")
@@ -21,6 +21,8 @@ ok(d(FocusReading(live: true, role: "AXComboBox")) != .command, "a combo box: fr
 ok(d(FocusReading(live: true, role: "AXGroup", editable: true)) != .command, "a field that takes text but has no text role: free")
 ok(d(FocusReading(live: true, role: "AXStaticText", dialog: true)) != .command, "a dialog or Save sheet: free")
 ok(d(arrangement, typing: true) != .command, "after Cmd+R (clip rename) the keys are free until Return, Escape, Tab or a click")
+ok(d(arrangement, launcherBox: true) != .command, "the Launcher announced its box: free whatever the focus reading says")
+ok(d(arrangement, launcherBox: false) == .command, "the box closed: commands again")
 // when unsure: free
 ok(d(nil) != .command, "the focus could not be read: free")
 ok(d(FocusReading(live: nil)) != .command, "the focus is not known: free")

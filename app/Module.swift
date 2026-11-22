@@ -17,7 +17,9 @@ protocol LiveModule: AnyObject {
     func menuItems() -> [NSMenuItem]             // rows for the menu-bar menu (targets kept alive by the module)
     func settingsView() -> AnyView               // its section of the window
     func status() -> String                      // a few words for the section's head, e.g. "LISTENING · E16"
+    var hasSwitch: Bool { get }                  // false: the section shows no ON / OFF (a view of another module)
 }
+extension LiveModule { var hasSwitch: Bool { true } }
 
 // the modules, in the window's order; each file adds its own (A1.swift, Mackie.swift, MidiKeys.swift)
 var MODULES: [LiveModule] = []

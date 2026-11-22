@@ -28,10 +28,12 @@ enum KeyMode {
 
     /// frontIsLive: Live is the front application. focus: nil when it could not be read at all.
     /// typingFlag: Live's own rename or search typing, begun by ⌘R or ⌘F and ended by Return, Escape, Tab or a click.
+    /// launcherBox: Launcher (Mantra) announced that its search box is open (the surest signal for that case).
     /// isMappedKey: the key with its modifiers is one of his command keys (any other combination is free).
-    static func decide(frontIsLive: Bool, focus: FocusReading?, typingFlag: Bool, isMappedKey: Bool) -> KeyDecision {
+    static func decide(frontIsLive: Bool, focus: FocusReading?, typingFlag: Bool, launcherBox: Bool = false, isMappedKey: Bool) -> KeyDecision {
         if !isMappedKey { return .free("not one of his keys") }
         if !frontIsLive { return .free("Live is not in front") }
+        if launcherBox { return .free("the Launcher's box is open") }           // Launcher (Mantra) says so itself (com.mantra.launcher.box)
         guard let focus = focus else { return .free("the focus could not be read") }
         if focus.live == false { return .free("another app holds the keys" + (focus.otherApp.map { " (" + $0 + ")" } ?? "")) }
         if focus.live == nil { return .free("the focus is not known") }

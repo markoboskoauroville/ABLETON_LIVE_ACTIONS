@@ -33,13 +33,30 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/km" && cp app/KeyMode.swift "$RUNNER_TEMP/km/KeyMode.swift" && cp tests/keymode_test.swift "$RUNNER_TEMP/km/main.swift"
           swiftc -o "$RUNNER_TEMP/km_test" "$RUNNER_TEMP/km/KeyMode.swift" "$RUNNER_TEMP/km/main.swift" && "$RUNNER_TEMP/km_test"
-          for M in 's/if focus.live == false {/if false {/' 's/KeyMode.textRoles.contains(r) {/KeyMode.textRoles.contains(r), false {/' 's/if focus.dialog {/if false {/' 's/if typingFlag {/if false {/'; do
+          for M in 's/if focus.live == false {/if false {/' 's/KeyMode.textRoles.contains(r) {/KeyMode.textRoles.contains(r), false {/' 's/if focus.dialog {/if false {/' 's/if typingFlag {/if false {/' 's/if launcherBox {/if false {/'; do
             mkdir -p "$RUNNER_TEMP/kmm" && sed "$M" app/KeyMode.swift > "$RUNNER_TEMP/kmm/KeyMode.swift"
             cmp -s app/KeyMode.swift "$RUNNER_TEMP/kmm/KeyMode.swift" && { echo "the mutation $M did not apply"; exit 1; }
             cp tests/keymode_test.swift "$RUNNER_TEMP/kmm/main.swift"
             swiftc -o "$RUNNER_TEMP/kmm_test" "$RUNNER_TEMP/kmm/KeyMode.swift" "$RUNNER_TEMP/kmm/main.swift"
             if "$RUNNER_TEMP/kmm_test" >/dev/null; then echo "BAD: the tests did not catch: $M"; exit 1; else echo "GOOD: the tests failed when the check was removed: $M"; fi
           done
+      - name: I and O (the loop marks) and the Custom Shortcuts model
+        run: |
+          mkdir -p "$RUNNER_TEMP/lm" && cp app/LoopMarks.swift "$RUNNER_TEMP/lm/" && cp tests/loopmarks_test.swift "$RUNNER_TEMP/lm/main.swift"
+          swiftc -o "$RUNNER_TEMP/lm_test" "$RUNNER_TEMP/lm/LoopMarks.swift" "$RUNNER_TEMP/lm/main.swift" && "$RUNNER_TEMP/lm_test"
+          mkdir -p "$RUNNER_TEMP/sc" && cp app/Shortcuts.swift app/KeyMode.swift "$RUNNER_TEMP/sc/" && cp tests/shortcuts_test.swift "$RUNNER_TEMP/sc/main.swift"
+          swiftc -o "$RUNNER_TEMP/sc_test" "$RUNNER_TEMP/sc/Shortcuts.swift" "$RUNNER_TEMP/sc/KeyMode.swift" "$RUNNER_TEMP/sc/main.swift" && "$RUNNER_TEMP/sc_test"
+          # mutations that must fail: the new mark no longer wins; capture no longer frees the old key
+          mkdir -p "$RUNNER_TEMP/lmm" && sed 's/if let b = currentOut, b > p + 0.001 { end = b } else { end = p + len }/end = p + len/' app/LoopMarks.swift > "$RUNNER_TEMP/lmm/LoopMarks.swift"
+          cmp -s app/LoopMarks.swift "$RUNNER_TEMP/lmm/LoopMarks.swift" && { echo "mutation did not apply"; exit 1; }
+          cp tests/loopmarks_test.swift "$RUNNER_TEMP/lmm/main.swift"
+          swiftc -o "$RUNNER_TEMP/lmm_test" "$RUNNER_TEMP/lmm/LoopMarks.swift" "$RUNNER_TEMP/lmm/main.swift"
+          if "$RUNNER_TEMP/lmm_test" >/dev/null; then echo "BAD: the loop tests did not catch I forgetting the OUT"; exit 1; else echo "GOOD: the loop tests failed when I forgets the OUT"; fi
+          mkdir -p "$RUNNER_TEMP/scm" && cp app/KeyMode.swift "$RUNNER_TEMP/scm/" && sed 's/current(\$0.id)?.same(code: code, mods: mods) == true/false/' app/Shortcuts.swift > "$RUNNER_TEMP/scm/Shortcuts.swift"
+          cmp -s app/Shortcuts.swift "$RUNNER_TEMP/scm/Shortcuts.swift" && { echo "mutation did not apply"; exit 1; }
+          cp tests/shortcuts_test.swift "$RUNNER_TEMP/scm/main.swift"
+          swiftc -o "$RUNNER_TEMP/scm_test" "$RUNNER_TEMP/scm/Shortcuts.swift" "$RUNNER_TEMP/scm/KeyMode.swift" "$RUNNER_TEMP/scm/main.swift"
+          if "$RUNNER_TEMP/scm_test" >/dev/null; then echo "BAD: the shortcut tests did not catch a key that is never found"; exit 1; else echo "GOOD: the shortcut tests failed when keys are never found"; fi
       - name: Pins (name, bundle id, settings files, one title, no app OFF)
         run: bash tests/pins.sh
       - name: The pins hold (mutation) - stopped goes back to Continue Playback, the test MUST fail

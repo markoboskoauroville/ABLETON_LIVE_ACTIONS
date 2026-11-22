@@ -36,8 +36,10 @@ let A1_DEFAULT_MAPS: [[String: Any]] = [
     ["from": "up", "mods": ["cmd"], "act": "back-track", "gets": "AbletonOSC: selected_track", "blob": "track ▲", "does": "Select the previous track up", "was": "⌘↑: nothing in Live's menus"],
     ["from": "down", "mods": ["alt"], "act": "move-track-down", "gets": "the track header, dragged", "blob": "track moved down", "does": "Move the selected track down one place (its header is dragged past the track below, as your hand would)", "was": "⌥↓: nothing in Live's menus"],
     ["from": "up", "mods": ["alt"], "act": "move-track-up", "gets": "the track header, dragged", "blob": "track moved up", "does": "Move the selected track up one place (its header is dragged past the track above, as your hand would)", "was": "⌥↑: nothing in Live's menus"],
-    ["from": "i", "mods": [String](), "act": "in-transient", "gets": "the next transient, then AbletonOSC", "blob": "transient in", "does": "Jump to the first transient to the right of the insert point and mark the loop's IN on its waveform's zero", "was": "I: nothing in Live (⌘I is Insert Silence)"],
-    ["from": "o", "mods": [String](), "act": "out-transient", "gets": "the next transient, then AbletonOSC", "blob": "transient out", "does": "Jump to the first transient to the right of the insert point and mark the loop's OUT on its waveform's zero", "was": "O: Playback › Metronome on or off"],
+    ["from": "i", "mods": [String](), "act": "in-now", "gets": "AbletonOSC: loop_start / loop_length", "blob": "in", "does": "IN, as in an editing program: the loop brace's start jumps to where you are now (the playhead while it plays, the insert point when stopped); the OUT is kept", "was": "I: nothing in Live (⌘I is Insert Silence); until v27 I jumped to the next transient"],
+    ["from": "o", "mods": [String](), "act": "out-now", "gets": "AbletonOSC: loop_start / loop_length, loop on", "blob": "out", "does": "OUT, as in an editing program: the loop brace's end jumps to where you are now and the loop turns on; the IN is kept", "was": "O: Playback › Metronome on or off (this key no longer toggles it); until v27 O jumped to the next transient"],
+    ["from": "i", "mods": ["shift"], "act": "in-transient", "gets": "the next transient, then AbletonOSC", "blob": "transient in", "does": "IN at the next transient: the first transient to the right of the insert point, marked on its waveform's zero", "was": "⇧I: nothing in Live's menus (until v27 this was the I key)"],
+    ["from": "o", "mods": ["shift"], "act": "out-transient", "gets": "the next transient, then AbletonOSC", "blob": "transient out", "does": "OUT at the next transient: the first transient to the right of the insert point, marked on its waveform's zero", "was": "⇧O: nothing in Live's menus (until v27 this was the O key)"],
     ["from": "l", "mods": [String](), "act": "toggle", "menu": ["Edit", ["Deactivate Loop", "Activate Loop"]] as [Any], "gets": "Edit › Activate / Deactivate Loop", "blob": "loop", "does": "Turn Live's loop on, and off again (Live's own ⌘L, pressed through accessibility)", "was": "L: nothing in Live (⌘L is Deactivate Loop)"],
 ]
 // a keystroke mapping's menu item, when Live has one (MEASURED 14.9.2026): pressed instead of the keystroke
@@ -74,6 +76,11 @@ final class A1Engine: ObservableObject {
     var focusCache: (FocusReading, Double)?             // the last reading of where the keyboard focus is (KeyMode), and when
     var focusCosts: [Double] = []                      // milliseconds of each fresh reading, reported to the log every 100
     var modeWord = "COMMAND", modeWhy = ""             // shown in the A1 tab
+    var shortcuts = ShortcutModel(rows: [])            // CUSTOM SHORTCUTS: his key per row (Shortcuts.swift)
+    var shortcutsNote: String?
+    var captureId: String?, captureUntil = 0.0, captureSwallow: Set<Int> = []
+    var pendingKey: PendingKey?
+    var launcherBox = false, launcherAt = 0.0           // Launcher (Mantra) announced its box (A1Shortcuts.swift)
     var stopHold: Double?                              // after a stop that planted nothing: the stop position, which is NOT his insert point
     var byCode: [Int: [[String: Any]]] = [:]
     var typing = false
@@ -183,6 +190,7 @@ final class A1Engine: ObservableObject {
         for d in A1_DEFAULT_MAPS where removed[mapId(d)] == nil && !kept.contains(where: { mapId($0) == mapId(d) }) { kept.append(d) }
         c["maps"] = kept
         conf = c
+        loadShortcutOverrides()
         index()
     }
     func save() {
@@ -191,9 +199,13 @@ final class A1Engine: ObservableObject {
     }
     func index() {
         byCode = [:]
+        shortcuts.rows = shortcutRows()
+        shortcuts.overrides = shortcuts.overrides.filter { id, _ in shortcuts.rows.contains { $0.id == id } }
         for m in maps where (m["off"] as? Bool) != true {
-            guard let code = A1KEY["\(m["from"] ?? "")"] else { continue }
-            if m["act"] != nil || m["menu"] != nil || A1KEY["\(m["to"] ?? "")"] != nil { byCode[code, default: []].append(m) }
+            guard var code = A1KEY["\(m["from"] ?? "")"] else { continue }
+            var mm = m
+            if let o = shortcuts.overrides[mapId(m)] { code = o.code; mm["from"] = o.label; mm["mods"] = o.mods }      // his own key (CUSTOM SHORTCUTS)
+            if mm["act"] != nil || mm["menu"] != nil || A1KEY["\(mm["to"] ?? "")"] != nil { byCode[code, default: []].append(mm) }
         }
     }
     func say(_ s: String) { status = s; statusAt = a1Time(); tick += 1; if s.hasPrefix("Space") || s.hasPrefix("stopped") || s == "playing" { AppLog.write("A1: " + s) } }
@@ -207,6 +219,7 @@ final class A1Engine: ObservableObject {
         typing = false
         startTap()
         tapRetry = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in if self?.tap == nil { self?.startTap() } }
+        watchLauncher()
         let nc = NSWorkspace.shared.notificationCenter
         nc.addObserver(self, selector: #selector(launched(_:)), name: NSWorkspace.didLaunchApplicationNotification, object: nil)
         nc.addObserver(self, selector: #selector(terminated(_:)), name: NSWorkspace.didTerminateApplicationNotification, object: nil)
@@ -218,6 +231,7 @@ final class A1Engine: ObservableObject {
         guard on else { return }
         on = false
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+        DistributedNotificationCenter.default().removeObserver(self)
         hunt?.invalidate(); hunt = nil
         samplerStop()
         tapRetry?.invalidate(); tapRetry = nil
@@ -409,12 +423,15 @@ final class A1Engine: ObservableObject {
 
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput { tapGapAt = a1Time(); AppLog.write("key tap disabled by macOS (\(type == .tapDisabledByTimeout ? "timeout" : "user input"))"); if let t = tap { CGEvent.tapEnable(tap: t, enable: true); AppLog.write("key tap re-enabled") }; return pass }
         if type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown {
-            typing = false; focusCache = nil
+            typing = false; focusCache = nil; launcherBox = false      // a click in Live ends the Launcher's box too
             if type == .leftMouseDown { noteClick(e) }
             return pass
         }
 
         if e.getIntegerValueField(.eventSourceUserData) == A1_POSTED { return pass }
+        if let cid = captureId {                       // CAPTURE: the next key is the shortcut (15 s), and goes nowhere else
+            if a1Time() > captureUntil { captureId = nil; DispatchQueue.main.async { self.tick += 1 } } else { return captureFilter(type, e, cid) }
+        }
         let code = Int(e.getIntegerValueField(.keyboardEventKeycode))
         let maps = byCode[code]
         let isSpace = code == A1KEY["space"]!
@@ -435,7 +452,7 @@ final class A1Engine: ObservableObject {
             let mapped = isR || (maps?.contains { same(f, mapMods($0)) } ?? false) || (isSpace && noMods && flag("space"))
             if mapped {
                 let fr = currentFocus()
-                let d = KeyMode.decide(frontIsLive: true, focus: fr, typingFlag: typing, isMappedKey: true)
+                let d = KeyMode.decide(frontIsLive: true, focus: fr, typingFlag: typing, launcherBox: launcherBoxActive, isMappedKey: true)
                 modeWord = KeyMode.word(d); modeWhy = KeyMode.why(d)
                 let label = isSpace ? "Space" : (isR ? "⌘R" : ((maps?.first?["from"] as? String) ?? "\(code)"))
                 AppLog.write("key \(label): " + (d == .command ? "command" : "free: " + KeyMode.why(d)))
@@ -469,6 +486,8 @@ final class A1Engine: ObservableObject {
                     DispatchQueue.main.async {
                         switch a {
                         case "in", "out": self.markLoop(a)
+                        case "in-now": self.markNow("in")
+                        case "out-now": self.markNow("out")
                         case "in-transient": self.jumpToTransient("in")
                         case "out-transient": self.jumpToTransient("out")
                         case "locator": self.locator()
@@ -573,7 +592,7 @@ final class A1Engine: ObservableObject {
     /// the word shown in the A1 tab, refreshed once a second while Live is in front
     func refreshMode() {
         guard liveFront() else { if modeWord != "TYPING" { modeWord = "TYPING"; modeWhy = "Live is not in front"; tick += 1 }; return }
-        let d = KeyMode.decide(frontIsLive: true, focus: readFocus(), typingFlag: typing, isMappedKey: true)
+        let d = KeyMode.decide(frontIsLive: true, focus: readFocus(), typingFlag: typing, launcherBox: launcherBoxActive, isMappedKey: true)
         let w = KeyMode.word(d), y = KeyMode.why(d)
         if w != modeWord || y != modeWhy { modeWord = w; modeWhy = y; tick += 1 }
     }

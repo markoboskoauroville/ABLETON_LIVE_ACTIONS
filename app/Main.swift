@@ -22,11 +22,11 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
         super.init()
         if shot {
             MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"),
-                       ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE")]
+                       ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShotStub(id: "shortcuts", title: "CUSTOM SHORTCUTS"), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE")]
             for m in MODULES { on[m.id] = true }
             return
         }
-        MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"), A1Module(), MackieModule(), MidiKeysModule()]   // MACROS first: the one he uses (27.10.2026)
+        MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"), A1Module(), ShortcutsModule(), MackieModule(), MidiKeysModule()]   // MACROS first: the one he uses (27.10.2026)
         let saved = SETTINGS.read()["modules"] as? [String: Bool] ?? [:]
         let shared = MidiShared.load()        // the MIDI modules' on / off is ONE state for both apps (MANTRA_MIDI_MODULES)
         for m in MODULES { on[m.id] = MidiShared.ids.contains(m.id) ? (shared[m.id] ?? true) : (saved[m.id] ?? m.defaultOn) }
@@ -109,8 +109,10 @@ struct ModuleSection: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(m.title).font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(.white)
-                Word(text: "ON", on: u.on[m.id]!) { u.setModule(m.id, true) }
-                Word(text: "OFF", on: !u.on[m.id]!) { u.setModule(m.id, false) }
+                if m.hasSwitch {
+                    Word(text: "ON", on: u.on[m.id]!) { u.setModule(m.id, true) }
+                    Word(text: "OFF", on: !u.on[m.id]!) { u.setModule(m.id, false) }
+                }
                 Spacer()
                 Text(m.status()).font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(AMBER)
             }
