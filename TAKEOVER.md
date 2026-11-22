@@ -195,3 +195,21 @@ Arrangement view, browser closed), no clicks, no mouse move, no key. Results (el
 
 v24 installed 22.11.2026 05:19 (AX quit of v23 pid 3184 at 05:19:28, v24 pid 10390 started 05:19:29 with `open -g`, tap enabled
 when checked 6 s later, the updater line "v24 is the newest" at 05:19:33). v23 never saw a test: its log held only start and updater lines.
+
+## Confirmed by Marko, 22.11.2026 (v24 tested; v25 installed 05:44, pid 34439)
+
+Marko, 22.11.2026, after testing v24: "Ableton Live is working. Thank". Final decision table (Transport.decide):
+| State | Result |
+|---|---|
+| playing, no click in the arrangement since the play began | Shift+Space stops, then Cmd+Shift+Space plants the insert point on the playhead |
+| playing, clicked in the arrangement | Shift+Space stops, nothing planted, his place stays |
+| playing, click unknown (key tap was off) | stop only |
+| playing, follow switch off | stop only |
+| stopped | a plain Space: Live plays from the insert point (loop case: the playhead to the loop start, then Continue Playback) |
+| Live's state unknown | a plain Space, nothing planted |
+The log of his test (05:25 to 05:40Z): 3 clicks seen, all AXStaticText under Arrangement and counted; each followed by "yes -> stop";
+every stop without a click was "no -> stopAndPlant"; every stopped Space was "play from the insert point". No tap gap, no "unknown".
+v25: `--studio-shot <png> --width N` renders the window off screen (rest, after TOP, after a resize; title hidden in all three, 640 wraps the
+tab row to two lines, nothing cut) and the log has "key tap installed / disabled by macOS / re-enabled".
+Open points still: a real insert-point reading from Live (AbletonOSC handler), the jump-to-click question (Marko's, unanswered), and the
+two MIDI modules: decided 22.11.2026 to live in both apps as one shared module (being built).

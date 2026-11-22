@@ -70,3 +70,9 @@ signal. Installed 22.11.2026 05:15 (AX quit of v21, v23 in, started with `open -
 Accessibility probe of Live (1600 points): plain groups (transport, status, Device Detail, track headers) are not controls by role,
 so "not a control" was a wrong rule; an allow-list (the arrangement canvas) is the right one. Lesson: probe the real UI before writing a
 rule about what is under the pointer; Live's AX tree is rich (Arrangement, Track Headers, Loop Brace, Device Detail, Status).
+
+## 22.11.2026, v25: confirmed
+"Ableton Live is working. Thank" (Marko, after the v24 test). The log proved each click (role, group above it, counted) and each Space decision.
+An app that must be checked at widths and states needs its own off-screen render (`--studio-shot`) from its first version: the window
+was on another Space and Accessibility could not see it. A hidden second instance must be started by its executable, take no focus
+(activation policy prohibited) and start no engine.
