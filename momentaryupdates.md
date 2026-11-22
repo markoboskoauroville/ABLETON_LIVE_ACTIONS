@@ -255,4 +255,4 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 
 > Please debug right now. I have problem with my Ableton Live assistant. I think after timeline become after some length, this thing we developed that when I click with the insertion point and I press play and it plays from that point, it's broken now. Please, can you test it? There is a last song in a songs of five songs. I click somewhere in the last song. I click, and then I place space bar and place from the previous song. It doesn't follow my insertion point anymore. Please debug this thing. It's so annoying. Find the cause of bug and write it in your lessons so it never repeats again because we want to always progress never go backwards.
 
-**Status:** saved first; fix in v31 (Space never moves the playhead: stopped = plain play from the insert point, always).
+**Status:** saved first; v31 installed 22.11.2026 10:58 (Space never moves the playhead: stopped = plain play from the insert point, always).
