@@ -232,3 +232,9 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 > I want to describe Ableton bug a little bit better. So issue is if I'm in the play mode, there is a playment... Play head is moving. Right? While it's moving, I'm clicking on different parts of the waveform. And when I'm clicking during playing, my Ableton Live assistant does not register these new locations. This is the bug.
 
 **Status:** saved first; designing (v22 or v23); nothing installed.
+
+## 22.11.2026 (Marko, via the Fable master session): the MIDI modules are shared
+
+> All the MIDI modules should only be actually in both places. We are sharing the modules. We can do that. So because they are shared modules, they also share the settings. It's the same thing, just in different views.
+
+**Status:** saved first; design sent to the master; building.
