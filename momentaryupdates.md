@@ -219,3 +219,10 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 
 16.11.2026 (Marko, 16.11.2026): "Please with all my apps on the menu bar, make a comprehensive pop-up menu. When I hover over, I want to see what is it and what is it doing." and "for my apps always make a pipes before and after so I know where one app ends and other begins."
 **Status:** saved first; building in v21 (HoverCard kit: hover card and grey pipes).
+
+## 22.11.2026 (Marko, via the Fable master session): rename and the insert-point bug
+
+> We need to start working on Ableton Live actions. First renaming it to Ableton Live Assistant. Then you need to fix the bug when I'm in Ableton. So idea was where where play head stops, then the insert marker is jumping to that position, which works perfectly. But what doesn't work, if the Ableton Live is in a stop state and I manually move the insert marker anywhere by clicking on the waveform, then the song doesn't start to play for dent marker. It start to play from old marker.
+
+("for dent marker" = "from that marker"; his term: insert point.)
+**Status:** saved first; building in v21.
