@@ -146,3 +146,17 @@ Tests: `tests/transport_test.swift`, run by the workflow before the build (a mod
 - **Pins:** `tests/pins.sh` (display name, bundle id, executable, settings file names, App struct, repo of the updater,
   one-title guard, no app OFF, version once) and a workflow step that mutates `Transport.decide` back to Continue Playback and
   requires `transport_test` to FAIL.
+
+## v23, 22.11.2026: his click while Live plays
+
+Marko (momentaryupdates.md, 22.11.2026): while the playhead runs he clicks on the waveform and the assistant does not
+register the new place. The v21 fix (stopped: plain Space) was real but it was only the other half: stopped + play.
+The case he means: PLAYING, he clicks (the insert point moves, Live plays on), Space: v21 stopped and planted the insert
+point on the playhead (Shift+Space, Cmd+Shift+Space) and threw his click away. Now `Transport.decide(..., userMovedWhilePlaying:)`:
+plant only when he is known NOT to have clicked since this play began; moved or unknown, stop only. Live gives no reading of
+the insert point while playing (AbletonOSC's `current_song_time` is the playhead; the insert point is not among its properties),
+so the signal is the mouse-down the key tap already receives (`A1Engine.noteClick`: left button, Live in front, inside Live's
+window, not on a control by Accessibility role; `Transport.clickCounts`). After a stop that planted nothing the playhead is
+not his insert point: `stopHold` keeps `sample()` from writing the stop position into the file beside the set until he moves
+it. Not built: a jump of the playback to the click (the pointer cannot be turned into beats); the log lines
+"click in Live while playing: role ..." in ~/Library/Logs/Ableton Live Assistant (Mantra)/app.log show what each click was.

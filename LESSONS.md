@@ -56,3 +56,10 @@ twice, tabs not explained), the updater never seen running. v22: one title enfor
 version once; the MIDI tabs identified as live copies and the double-grab risk written down; a log file under ~/Library/Logs so
 the updater and the Space decisions can be seen; pins and a mutation test. Lesson: an app with no log file cannot show that its
 updater ran; give every app one from its first version, and write the "kept on purpose" list into a test, not only a document.
+
+## 22.11.2026 (v23): fix one half, ask for the other
+Marko's first description ("stopped, I click, then play starts from the old place") was one case; his second ("while it plays I click and
+the assistant does not register it") was the one that mattered, and it is the same rule seen from the other side: the insert point
+is the master, so nothing the assistant does (a stop, a plant, a file write) may overwrite a place he chose by hand. Before
+fixing a bug from a first description, list every state of the transport (playing, stopped) and every way he can move the
+insert point in each (click, key, MIDI), and ask about the one not named.

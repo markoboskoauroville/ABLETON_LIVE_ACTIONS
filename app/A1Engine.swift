@@ -70,6 +70,8 @@ final class A1Engine: ObservableObject {
     // the filter
     var tap: CFMachPort?, tapSource: CFRunLoopSource?, tapRetry: Timer?
     var tapOK = false
+    var lastClickAt = 0.0, playStartAt = 0.0, tapGapAt = 0.0   // his clicks in Live's arrangement, the play's start, a gap of the key tap (Transport.userMoved)
+    var stopHold: Double?                              // after a stop that planted nothing: the stop position, which is NOT his insert point
     var byCode: [Int: [[String: Any]]] = [:]
     var typing = false
     var held: Set<Int> = []
@@ -400,8 +402,14 @@ final class A1Engine: ObservableObject {
 
     func filter(_ type: CGEventType, _ e: CGEvent) -> Unmanaged<CGEvent>? {
         let pass = Unmanaged.passUnretained(e)
-        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput { if let t = tap { CGEvent.tapEnable(tap: t, enable: true) }; return pass }
-        if type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown { typing = false; return pass }
+
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput { tapGapAt = a1Time(); if let t = tap { CGEvent.tapEnable(tap: t, enable: true) }; return pass }
+        if type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown {
+            typing = false
+            if type == .leftMouseDown { noteClick(e) }
+            return pass
+        }
+
         if e.getIntegerValueField(.eventSourceUserData) == A1_POSTED { return pass }
         let code = Int(e.getIntegerValueField(.keyboardEventKeycode))
         let maps = byCode[code]
@@ -476,6 +484,26 @@ final class A1Engine: ObservableObject {
         return nil                                  // the plain space itself never reaches Live
     }
 
+    // HIS CLICK (v23, 22.11.2026): while Live plays he clicks on the waveform and the insert point moves; Live gives no reading
+    // of the insert point while it plays (current_song_time is the playhead), so the mouse-down is the signal. The time is
+    // taken at once (the tap must not wait), the test of what was under the pointer follows on the main queue.
+    func noteClick(_ e: CGEvent) {
+        let at = a1Time(), p = e.location
+        guard let front = NSWorkspace.shared.frontmostApplication, front.bundleIdentifier == BUNDLE else { return }
+        let target = e.getIntegerValueField(.eventTargetUnixProcessID)
+        if target > 0 && pid_t(target) != front.processIdentifier { return }
+        DispatchQueue.main.async {
+            guard let a = self.live() else { return }
+            var el: AXUIElement?
+            _ = AXUIElementCopyElementAtPosition(a, Float(p.x), Float(p.y), &el)
+            let role = el.flatMap { axString($0, kAXRoleAttribute) }
+            let inside = ((ax(a, kAXWindowsAttribute) as? [AXUIElement]) ?? []).contains { w in axFrame(axBounded(w))?.contains(p) == true }
+            let counts = Transport.clickCounts(left: true, liveFront: true, insideLiveWindow: inside, role: role)
+            if counts { self.lastClickAt = max(self.lastClickAt, at) }
+            if self.playing { AppLog.write("click in Live while playing: role \(role ?? "none"), inside the window \(inside), counts as moving the insert point: \(counts)") }
+        }
+    }
+
     // SPACE (v21, 22.11.2026): the decision is Transport.decide (Transport.swift, tested by the workflow). Live is asked
     // afresh whether it plays (0.3 s); no answer: the cached reading only while it is fresh; else a plain Space.
     // Playing: Shift+Space stops, then the insert point is planted on the playhead. Stopped: a plain Space, which starts
@@ -488,7 +516,10 @@ final class A1Engine: ObservableObject {
             if let f = fresh { setPlaying(f) }
             let reading = fresh ?? cached
             let intoLoop = pair != nil && (whence == "two ticked markers" || liveLoop.on == true) && !OSC.inside(lastBeats[knownTitle ?? ""], pair)
-            let action = Transport.decide(playing: reading, intoLoop: intoLoop, follow: flag("follow"))
+            let moved = Transport.userMoved(lastClickAt: lastClickAt, playStartAt: playStartAt, tapGapAt: tapGapAt)
+            let action = Transport.decide(playing: reading, intoLoop: intoLoop, follow: flag("follow"), userMovedWhilePlaying: moved)
+            if reading == true { AppLog.write("Space while playing: he clicked in the arrangement since the play began: \(moved.map { $0 ? "yes" : "no" } ?? "unknown") -> \(action)") }
+            if action == .playFromInsertPoint || action == .playIntoLoop || action == .plainSpace || action == .continuePlayback { playStartAt = a1Time(); stopHold = nil }
             switch action {
             case .playIntoLoop:
                 let p = pair!
@@ -508,7 +539,8 @@ final class A1Engine: ObservableObject {
                 say("Space: play or stop")
                 post([], "space")
             case .stopAndPlant, .stop:
-                seen.did = action == .stop ? "playing: Continue Playback (⇧Space) stops" : "playing: stopped (⇧Space), then the insert point to the playhead (⌘⇧Space)"
+                seen.did = action == .stopAndPlant ? "playing: stopped (⇧Space), then the insert point to the playhead (⌘⇧Space)" : (flag("follow") ? "playing: stopped (⇧Space); he moved the insert point (or it is not known): nothing planted, his place stays" : "playing: stopped (⇧Space), nothing planted (follow is off)")
+                if action == .stop && flag("follow") { stopHold = -1 }
                 say("Space: stop")
                 post(["shift"], "space")
                 if action == .stopAndPlant { DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.post(["cmd", "shift"], "space") } }
@@ -567,6 +599,7 @@ final class A1Engine: ObservableObject {
         playingAt = a1Time()
         if p == playing { return }
         playing = p
+        if p { playStartAt = a1Time(); stopHold = nil }
         fast?.invalidate(); fast = nil
         if playing { fast = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.sample() } }
         else { DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.sample() } }   // stopped: the stop is written at once
@@ -587,6 +620,7 @@ final class A1Engine: ObservableObject {
             self.lastWhy = nil
             guard let t = title, t == self.knownTitle, self.restoring == nil else { return }   // the set changed while Live was thinking
             self.lastBeats[t] = beats
+            if let h = self.stopHold, !self.playing { if h < 0 || abs(beats - h) < 0.01 { if h < 0 { self.stopHold = beats }; self.blobPosition(beats, self.written[t]); self.tick += 1; return } else { self.stopHold = nil } }   // a stop that planted nothing: the playhead is not his insert point; the file waits until he moves it
             if self.flag("resume") && !self.playing && OSC.moved(self.written[t], beats) {
                 let (ok, where_) = self.hairWrite(t, beats)
                 self.posState = (t, (ok ? "insert point at " : "NOT WRITTEN: ") + OSC.words(beats, self.numerator) + "  →  " + where_, a1Time())

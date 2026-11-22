@@ -17,8 +17,8 @@ struct FakeLive {
     mutating func click(_ beats: Double) { insert = beats }                                                  // he clicks the waveform
     mutating func run(_ beats: Double) { if playing { playhead += beats } }
     // what the app does for a Space press: the decision, then the keys
-    mutating func press(_ reading: Bool?, intoLoop: Bool = false, loopStart: Double = 0, follow: Bool = true) {
-        switch Transport.decide(playing: reading, intoLoop: intoLoop, follow: follow) {
+    mutating func press(_ reading: Bool?, intoLoop: Bool = false, loopStart: Double = 0, follow: Bool = true, moved: Bool? = false) {
+        switch Transport.decide(playing: reading, intoLoop: intoLoop, follow: follow, userMovedWhilePlaying: moved) {
         case .stopAndPlant: shiftSpace(); plant()
         case .stop: shiftSpace()
         case .playFromInsertPoint: space()
@@ -35,9 +35,9 @@ do {
     l.press(true)
     ok(!l.playing, "(a) playing + Space stops")
     ok(l.insert == 42 && l.stopPos == 42, "(a) the insert point is planted on the playhead (42), got \(l.insert)")
-    ok(Transport.decide(playing: true, intoLoop: false, follow: true) == .stopAndPlant, "(a) decide: playing -> stopAndPlant")
-    ok(Transport.decide(playing: true, intoLoop: true, follow: true) == .stopAndPlant, "(a) decide: playing, loop irrelevant")
-    ok(Transport.decide(playing: true, intoLoop: false, follow: false) == .stop, "(a) follow off: stop without planting")
+    ok(Transport.decide(playing: true, intoLoop: false, follow: true, userMovedWhilePlaying: false) == .stopAndPlant, "(a) decide: playing -> stopAndPlant")
+    ok(Transport.decide(playing: true, intoLoop: true, follow: true, userMovedWhilePlaying: false) == .stopAndPlant, "(a) decide: playing, loop irrelevant")
+    ok(Transport.decide(playing: true, intoLoop: false, follow: false, userMovedWhilePlaying: false) == .stop, "(a) follow off: stop without planting")
 }
 // stopped + play, insert point untouched: starts where it stopped
 do {
@@ -63,7 +63,7 @@ do {
     ok(stale == nil, "stale reading: not trusted after \(Transport.freshFor) s")
     l.press(stale)                      // unknown -> plain Space
     ok(l.playing && l.playhead == 77, "stop, quick user move, stale reading, play: starts at 77, got \(l.playhead)")
-    ok(Transport.decide(playing: nil, intoLoop: true, follow: true) == .plainSpace, "unknown reading: plain Space even with a loop")
+    ok(Transport.decide(playing: nil, intoLoop: true, follow: true, userMovedWhilePlaying: false) == .plainSpace, "unknown reading: plain Space even with a loop")
     ok(Transport.trusted(false, readAt: 100.0, now: 100.5) == false, "fresh reading is kept")
 }
 // stale reading that says "playing" while Live is in fact stopped and the insert point was moved: never Continue Playback
@@ -77,7 +77,72 @@ do {
     var l = FakeLive(); l.insert = 200; l.stopPos = 200
     l.press(false, intoLoop: true, loopStart: 64)
     ok(l.playing && l.playhead == 64, "stopped outside the loop: plays from the loop's start 64, got \(l.playhead)")
-    ok(Transport.decide(playing: false, intoLoop: false, follow: true) == .playFromInsertPoint, "decide: stopped, no loop -> playFromInsertPoint")
+    ok(Transport.decide(playing: false, intoLoop: false, follow: true, userMovedWhilePlaying: false) == .playFromInsertPoint, "decide: stopped, no loop -> playFromInsertPoint")
+}
+
+// ---- v23: he clicks on the waveform WHILE Live plays (22.11.2026) ----
+// the decision table
+do {
+    let d = Transport.decide
+    ok(d(true, false, true, false) == .stopAndPlant, "table: playing, not moved -> stopAndPlant (his 'works perfectly')")
+    ok(d(true, false, true, true) == .stop, "table: playing, moved -> stop only, nothing planted")
+    ok(d(true, false, true, nil) == .stop, "table: playing, unknown -> stop only (his chosen place is never lost)")
+    ok(d(true, false, false, false) == .stop, "table: playing, follow off -> stop only")
+    ok(d(false, false, true, true) == .playFromInsertPoint, "table: stopped -> plain play, whatever the flag")
+    ok(d(false, false, true, false) == .playFromInsertPoint, "table: stopped, flag false -> plain play")
+    ok(d(false, true, true, nil) == .playIntoLoop, "table: stopped, loop -> into the loop")
+}
+// click during play, then stop, then play: starts at the click
+do {
+    var l = FakeLive(); l.insert = 10; l.playing = true; l.playhead = 10; l.run(32)
+    l.click(90)                                          // he clicks while it plays: Live keeps playing, the insert point is 90
+    l.run(8)
+    l.press(true, moved: true)                           // Space: stop only
+    ok(!l.playing && l.insert == 90, "click during play, stop: the insert point is still his click 90, got \(l.insert)")
+    l.press(false)
+    ok(l.playing && l.playhead == 90, "...then play starts at the click 90, got \(l.playhead)")
+}
+// two clicks during play: the last wins
+do {
+    var l = FakeLive(); l.insert = 0; l.playing = true; l.playhead = 0; l.run(20)
+    l.click(50); l.run(4); l.click(70); l.run(4)
+    l.press(true, moved: true); l.press(false)
+    ok(l.playhead == 70, "two clicks: the last (70) wins, got \(l.playhead)")
+}
+// click during play, playback runs past the click, stop: still the click
+do {
+    var l = FakeLive(); l.insert = 0; l.playing = true; l.playhead = 0; l.run(8)
+    l.click(12); l.run(100)
+    l.press(true, moved: true)
+    ok(l.insert == 12 && l.playhead == 108, "playing past the click: stop leaves the insert point at 12, got \(l.insert)")
+    l.press(false)
+    ok(l.playhead == 12, "play starts at 12, got \(l.playhead)")
+}
+// no click: a stop plants (unchanged), and the next play starts where it stopped
+do {
+    var l = FakeLive(); l.insert = 3; l.playing = true; l.playhead = 3; l.run(40)
+    l.press(true, moved: false); l.press(false)
+    ok(l.playhead == 43, "no click: stop plants at 43 and play starts there, got \(l.playhead)")
+}
+// which clicks count
+do {
+    let c = Transport.clickCounts
+    ok(c(true, true, true, nil), "a click on the arrangement (no role) counts")
+    ok(c(true, true, true, "AXGroup"), "a click on a group counts")
+    ok(!c(true, false, true, nil), "a click while another app is in front does not count")
+    ok(!c(true, true, false, nil), "a click outside Live's window does not count")
+    ok(!c(false, true, true, nil), "a right or other button does not count")
+    ok(!c(true, true, true, "AXSlider"), "the mixer's slider does not count")
+    ok(!c(true, true, true, "AXButton"), "a transport button does not count")
+    ok(!c(true, true, true, "AXMenuItem"), "a menu item does not count")
+}
+// when the click is read as 'since this play began'
+do {
+    ok(Transport.userMoved(lastClickAt: 105, playStartAt: 100, tapGapAt: 0) == true, "a click after the play began: moved")
+    ok(Transport.userMoved(lastClickAt: 95, playStartAt: 100, tapGapAt: 0) == false, "a click before the play began: not moved")
+    ok(Transport.userMoved(lastClickAt: 0, playStartAt: 100, tapGapAt: 0) == false, "no click at all: not moved")
+    ok(Transport.userMoved(lastClickAt: 105, playStartAt: 100, tapGapAt: 102) == nil, "the tap was off since the play began: unknown")
+    ok(Transport.userMoved(lastClickAt: 0, playStartAt: 100, tapGapAt: 50) == false, "a tap gap before the play began does not matter")
 }
 print(fail == 0 ? "transport_test: all \(pass) passed" : "transport_test: \(fail) FAILED of \(pass + fail)")
 exit(fail == 0 ? 0 : 1)

@@ -29,6 +29,13 @@ jobs:
           cp tests/transport_test.swift "$RUNNER_TEMP/mt/main.swift"
           swiftc -o "$RUNNER_TEMP/mt_test" "$RUNNER_TEMP/mt/Transport.swift" "$RUNNER_TEMP/mt/main.swift"
           if "$RUNNER_TEMP/mt_test"; then echo "BAD: the test did not catch the old bug"; exit 1; else echo "GOOD: the test failed on the old behaviour"; fi
+      - name: The pins hold (mutation 2) - the stop ignores his click again, the test MUST fail
+        run: |
+          mkdir -p "$RUNNER_TEMP/mt2" && sed 's/return follow && userMovedWhilePlaying == false ? .stopAndPlant : .stop/return follow ? .stopAndPlant : .stop/' app/Transport.swift > "$RUNNER_TEMP/mt2/Transport.swift"
+          cmp -s app/Transport.swift "$RUNNER_TEMP/mt2/Transport.swift" && { echo "the mutation did not apply"; exit 1; }
+          cp tests/transport_test.swift "$RUNNER_TEMP/mt2/main.swift"
+          swiftc -o "$RUNNER_TEMP/mt2_test" "$RUNNER_TEMP/mt2/Transport.swift" "$RUNNER_TEMP/mt2/main.swift"
+          if "$RUNNER_TEMP/mt2_test"; then echo "BAD: the test did not catch the ignored click"; exit 1; else echo "GOOD: the test failed when the click is ignored"; fi
       - name: Build
         run: SIGN=- NO_INSTALL=1 ./build.sh
       - name: Pack

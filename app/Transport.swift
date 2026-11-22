@@ -22,14 +22,38 @@ enum Transport {
     static let freshFor = 1.5
 
     /// `playing`: Live's own answer (true/false), or nil when there is none that is fresh.
-    static func decide(playing: Bool?, intoLoop: Bool, follow: Bool) -> SpaceAction {
+    /// `userMovedWhilePlaying` (v23, Marko 22.11.2026: while Live plays he clicks on the waveform and the assistant did not
+    /// register the new place): true = he clicked in Live's arrangement since this play began, false = he did not, nil =
+    /// not known (the key tap was off for a while). His hand outranks the assistant: the insert point is planted on the
+    /// playhead only when he is KNOWN not to have moved it; moved or unknown, the stop leaves it where it is.
+    static func decide(playing: Bool?, intoLoop: Bool, follow: Bool, userMovedWhilePlaying: Bool?) -> SpaceAction {
         guard let playing = playing else { return .plainSpace }
-        if playing { return follow ? .stopAndPlant : .stop }
+        if playing { return follow && userMovedWhilePlaying == false ? .stopAndPlant : .stop }
         return intoLoop ? .playIntoLoop : .playFromInsertPoint
     }
 
     /// The cached reading is used only while it is fresh; otherwise nil (so the caller asks, or falls back to .plainSpace).
     static func trusted(_ cached: Bool, readAt: Double, now: Double) -> Bool? {
         now - readAt <= freshFor ? cached : nil
+    }
+
+    /// Did he move the insert point by hand since this play began? A click in the arrangement after the play began and
+    /// not before; unknown (nil) when the key tap was switched off by macOS at some time since the play began.
+    static func userMoved(lastClickAt: Double, playStartAt: Double, tapGapAt: Double) -> Bool? {
+        if tapGapAt > playStartAt { return nil }
+        return lastClickAt > playStartAt
+    }
+
+    /// Does a mouse-down count as "he moved the insert point"? Only a left click, with Live in front, inside Live's own
+    /// window, on something that is not a control (button, slider, menu, field ...). Another app, the mixer's controls
+    /// and the transport buttons do not count. `role` is Accessibility's role of the element under the pointer (nil when
+    /// Live's custom-drawn view gives none, which is the arrangement itself).
+    static let controlRoles: Set<String> = ["AXButton", "AXCheckBox", "AXRadioButton", "AXSlider", "AXPopUpButton", "AXMenuButton",
+        "AXMenuItem", "AXMenu", "AXMenuBar", "AXMenuBarItem", "AXTextField", "AXTextArea", "AXComboBox", "AXScrollBar",
+        "AXIncrementor", "AXValueIndicator", "AXToolbar", "AXTabGroup", "AXDisclosureTriangle"]
+    static func clickCounts(left: Bool, liveFront: Bool, insideLiveWindow: Bool, role: String?) -> Bool {
+        guard left, liveFront, insideLiveWindow else { return false }
+        if let r = role, controlRoles.contains(r) { return false }
+        return true
     }
 }
