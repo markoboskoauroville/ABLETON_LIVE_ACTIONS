@@ -49,3 +49,10 @@ Poll the mouse (macOS draws a status item once per display, only one copy owns t
 - Keep the decision a pure function (`Transport.decide`) so the workflow can test it without Live.
 - A rename keeps the bundle id (permissions), the App struct name (SwiftUI's saved window frame) and any folder other
   programs import by path.
+
+## Round 1: 7 of 10 (Fable, 22.11.2026, v21) and what changed in v22
+Missed: the fix unproven in real Live (Marko's hand), the interface (the title twice, the app ON / OFF still there, the version
+twice, tabs not explained), the updater never seen running. v22: one title enforced in every state; app ON / OFF removed, ✕ quits;
+version once; the MIDI tabs identified as live copies and the double-grab risk written down; a log file under ~/Library/Logs so
+the updater and the Space decisions can be seen; pins and a mutation test. Lesson: an app with no log file cannot show that its
+updater ran; give every app one from its first version, and write the "kept on purpose" list into a test, not only a document.

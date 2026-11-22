@@ -12,6 +12,7 @@ enum SpaceAction: Equatable {
     case stop                // the same without the planting (the "follow" switch is off)
     case playFromInsertPoint // a plain Space: Live starts at the insert point, wherever he put it
     case playIntoLoop        // the playhead is put at the loop's start by OSC, then Shift+Space (Continue Playback) plays from there
+    case continuePlayback    // the v20 behaviour when stopped (the bug): decide never returns it; the workflow mutates decide to return it and the test must fail
     case plainSpace          // Live's own answer unknown: a plain Space toggles whichever way Live is, and nothing is planted
 }
 

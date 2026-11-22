@@ -23,6 +23,7 @@ struct FakeLive {
         case .stop: shiftSpace()
         case .playFromInsertPoint: space()
         case .playIntoLoop: playhead = loopStart; stopPos = loopStart; shiftSpace()
+        case .continuePlayback: shiftSpace()
         case .plainSpace: space()
         }
     }

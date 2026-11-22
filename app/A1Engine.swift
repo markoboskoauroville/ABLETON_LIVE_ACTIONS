@@ -191,7 +191,7 @@ final class A1Engine: ObservableObject {
             if m["act"] != nil || m["menu"] != nil || A1KEY["\(m["to"] ?? "")"] != nil { byCode[code, default: []].append(m) }
         }
     }
-    func say(_ s: String) { status = s; statusAt = a1Time(); tick += 1 }
+    func say(_ s: String) { status = s; statusAt = a1Time(); tick += 1; if s.hasPrefix("Space") || s.hasPrefix("stopped") || s == "playing" { AppLog.write("A1: " + s) } }
 
     // MARK: on and off
 
@@ -501,6 +501,8 @@ final class A1Engine: ObservableObject {
                 seen.did = "stopped: a plain Space, Live plays from the insert point"
                 say("Space: play from the insert point")
                 post([], "space")
+            case .continuePlayback:
+                post(["shift"], "space")
             case .plainSpace:
                 seen.did = "Live's state not known: a plain Space, nothing planted"
                 say("Space: play or stop")

@@ -8,6 +8,7 @@ import AppKit
 
 final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
     @Published var on: [String: Bool] = [:]
+    @Published var notice: String?                  // a line in the window (why X did not quit)
     // the window is in tabs, one per module (Marko, 27.10.2026: "organize the whole user interface in tabs"); the
     // tab last chosen comes back
     @Published var tab: String = SETTINGS.read()["tab"] as? String ?? "macros" {
@@ -47,6 +48,16 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
         on[id] = v; SETTINGS.change { $0["modules"] = self.on }
         MODULES.first { $0.id == id }?.setOn(v)
         rebindKeys(); paint()
+    }
+    // ✕ quits the app (Marko, 16.11.2026, no-on-off-button.md), refused while a macro or action is running
+    func requestQuit() {
+        if let r = MODULES.compactMap({ $0 as? MacrosModule }).compactMap({ $0.running }).first {
+            notice = "Not quitting: \(r) is still running. Wait for it to finish, then press ✕ again."
+            AppLog.write("quit refused: " + r)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { self.notice = nil }
+            return
+        }
+        NSApp.terminate(nil)
     }
     func rebindKeys() { HotKeys.shared.set(MODULES.filter { on[$0.id]! }.flatMap { $0.hotkeys() }) }
     func paint() { objectWillChange.send() }
@@ -123,19 +134,21 @@ struct SettingsView: View {
         // the first row: the app ON / OFF, ✕ at the far right (MANTRA_MANIFEST swift-apps.md, 19.10.2026). Marko: "In
         // the top of every user interface, there will now be an on/off switch". Running is ON; OFF stops every module
         // (applicationWillTerminate) and quits. ✕ closes the window only.
+        // v22 (22.11.2026, no-on-off-button.md): the app ON / OFF is gone; ✕ quits the app (refused while a macro runs). The
+        // per-module ON / OFF and the dots on the tabs stay.
         HStack(spacing: 0) {
             Text("ABLETON LIVE ASSISTANT").font(.system(size: 12, weight: .bold, design: .monospaced)).foregroundColor(.white).padding(.trailing, 6)
-            Word(text: "ON", on: true) {}
-            Word(text: "OFF", on: false, action: { NSApp.terminate(nil) }, id: "off")
             Spacer()
             Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).padding(.trailing, 8)
+                .onTapGesture { NSWorkspace.shared.open(URL(string: RELEASES)!) }.help("the releases page")
             // v18, TOP (Marko, 31.10.2026: "On, off and top. Please build it in every application.")
             Word(text: "TOP", on: onTop, action: { onTop.toggle(); floatWindows(onTop) }, id: "top")
                 .help("Always on top: green, the window stays above every other window")
             PermissionsWord()                           // v16: only while a permission is missing (Permissions.swift)
-            CloseX()
+            CloseX(action: { u.requestQuit() }, label: "Quit app", help: "quit the app (refused while a macro is running)")
         }
         .padding(.leading, 24).padding(.trailing, 10).padding(.vertical, 8)
+        if let n = u.notice { Text(n).font(.system(size: 12, weight: .bold)).foregroundColor(AMBER).padding(.horizontal, 24).padding(.vertical, 6).frame(maxWidth: .infinity, alignment: .leading) }
         Divider()
         TabRow(u: u)
         Divider()
@@ -153,7 +166,6 @@ struct SettingsView: View {
                     Text(liveApp() == nil ? "NOT RUNNING" : "RUNNING").font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(liveApp() == nil ? GREY : GREEN)
                 }
                 if let m = MODULES.first(where: { $0.id == u.tab }) ?? MODULES.first { ModuleSection(u: u, m: m) }
-                HStack { Spacer(); Text("v\(VERSION)").font(.system(size: 11, design: .monospaced)).foregroundColor(GREY).onTapGesture { NSWorkspace.shared.open(URL(string: RELEASES)!) } }
             }
             .frame(width: max(200, g.size.width - 48), alignment: .leading)
             .clipped()
@@ -163,7 +175,7 @@ struct SettingsView: View {
         }
         .frame(minWidth: 640, idealWidth: 820, maxWidth: .infinity, minHeight: 480, idealHeight: 820, maxHeight: .infinity)
         .background(INK).preferredColorScheme(.dark)
-        .onAppear { DispatchQueue.main.async { floatWindows(onTop) } }
+        .onAppear { DispatchQueue.main.async { floatWindows(onTop); enforceOneTitle() } }
     }
 }
 
@@ -171,14 +183,14 @@ struct SettingsView: View {
 let UMBRELLA = Umbrella()
 
 final class Delegate: NSObject, NSApplicationDelegate {
-    func applicationDidFinishLaunching(_ n: Notification) { _ = UMBRELLA; Updater.checkAtStart() }   // asks to update at start (kit mac-updater)
+    func applicationDidFinishLaunching(_ n: Notification) { _ = UMBRELLA; watchOneTitle(); AppLog.write("started (pid \(ProcessInfo.processInfo.processIdentifier))"); Updater.checkAtStart() }   // asks to update at start (kit mac-updater)
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { false }
     // the star's open of a running app is a reopen: the window comes back (made again by the WindowGroup if closed)
     func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows, let w = s.windows.first(where: { $0.isMiniaturized }) { w.deminiaturize(nil); return false }
         return true
     }
-    func applicationWillTerminate(_ n: Notification) { for m in MODULES { m.setOn(false) } }
+    func applicationWillTerminate(_ n: Notification) { AppLog.write("quit"); for m in MODULES { m.setOn(false) } }
 }
 
 // the struct keeps its old name: SwiftUI keys the saved window frame on it ("NSWindow Frame AbletonLiveActions.SettingsView-…"),
@@ -186,7 +198,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
 @main struct AbletonLiveActions: App {
     @NSApplicationDelegateAdaptor(Delegate.self) var delegate
     var body: some Scene {
-        WindowGroup("Ableton Live Assistant (Mantra)") { SettingsView(u: UMBRELLA) }
+        WindowGroup(APP_NAME) { SettingsView(u: UMBRELLA) }
             .windowResizability(.contentMinSize).defaultSize(width: 820, height: 820)
     }
 }

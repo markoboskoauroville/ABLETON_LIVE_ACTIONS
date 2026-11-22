@@ -119,3 +119,30 @@ Playback starts where Live last stopped, so a stopped Live ignored the insert po
 loop case kept (the playhead goes to the loop's start, then Continue Playback). "Is Live playing" is asked of Live afresh
 at every Space (0.3 s); no answer: the cached reading only while it is under 1.5 s old; else a plain Space.
 Tests: `tests/transport_test.swift`, run by the workflow before the build (a model of Live's transport, not Live).
+
+## v22, 22.11.2026: round 1 corrections (Fable scored v21 7 of 10)
+
+- **One title only:** `enforceOneTitle()` / `watchOneTitle()` (Common.swift) hide the system title in every state (key, resign,
+  resize, full screen, minimise, TOP); `tests/pins.sh` guards it.
+- **No app ON / OFF** (modules/no-on-off-button.md): the first row has no ON / OFF. The old OFF did nothing but
+  `NSApp.terminate` (applicationWillTerminate switches every module off), so nothing is lost: ✕ now quits the app, refused
+  with a line in the window while a macro or action runs. The window's red button and the title bar close only the window.
+  The per-module ON / OFF and the green dots on the tabs stay (features). There is no login item and no auto-start in the
+  app (the AUTO of a macro is per macro: it runs when a set opens, and stops when the app quits). A relaunch quits the app
+  by its menu Quit (`macro ax-quit`), no longer by the first row's OFF.
+- **Version once** (first row, tap = releases page).
+- **MIDI TO MK CONTROL and MIDI TO KEY STROKE tabs are LIVE copies**, not links: the same sources as MANTRA_MIDI_TOOLS (diff
+  4 to 16 lines per file), ON in `~/.config/live-actions.json`. Both apps read and write the same files
+  `~/.config/midi-to-mk.json` and `midi-to-keystroke.json`, open the same MIDI sources and each installs its own key tap. With both
+  running and a module ON in both, one knob would fire twice (two Mackie commands, two keystrokes). Nothing guards it
+  (neither app looks for the other). MIDI Tools' own modules are OFF in `~/.config/midi-tools.json` and the app is not
+  running today. Nothing was removed (no downgrades); decide later which app keeps them.
+- **The app's log:** `~/Library/Logs/Ableton Live Assistant (Mantra)/app.log` (AppLog): start, quit, "[Updater] ..." lines, A1's
+  "Space: ..." decisions, refused quits. v21 wrote no file (NSLog only, nothing found in `log show`): the silent-failure finding.
+- **Hands:** on 22.11.2026 I edited `~/.config/star-rows.json` (the live copy of STAR_SWIFT rows.json, which the star reloads by
+  itself) and removed `/Applications/Ableton Live Actions (Mantra).app` with `rm -rf` of that one bundle, by hand, because the
+  rename needed one star row with the new name and no second copy; no Queen route or macro exists for either. `star apps`
+  lists the app once, running, and `star open` answers "running".
+- **Pins:** `tests/pins.sh` (display name, bundle id, executable, settings file names, App struct, repo of the updater,
+  one-title guard, no app OFF, version once) and a workflow step that mutates `Transport.decide` back to Continue Playback and
+  requires `transport_test` to FAIL.

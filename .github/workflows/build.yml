@@ -20,6 +20,15 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/tt" && cp app/Transport.swift "$RUNNER_TEMP/tt/Transport.swift" && cp tests/transport_test.swift "$RUNNER_TEMP/tt/main.swift"
           swiftc -o "$RUNNER_TEMP/transport_test" "$RUNNER_TEMP/tt/Transport.swift" "$RUNNER_TEMP/tt/main.swift" && "$RUNNER_TEMP/transport_test"
+      - name: Pins (name, bundle id, settings files, one title, no app OFF)
+        run: bash tests/pins.sh
+      - name: The pins hold (mutation) - stopped goes back to Continue Playback, the test MUST fail
+        run: |
+          mkdir -p "$RUNNER_TEMP/mt" && sed 's/return intoLoop ? .playIntoLoop : .playFromInsertPoint/return .continuePlayback/' app/Transport.swift > "$RUNNER_TEMP/mt/Transport.swift"
+          cmp -s app/Transport.swift "$RUNNER_TEMP/mt/Transport.swift" && { echo "the mutation did not apply"; exit 1; }
+          cp tests/transport_test.swift "$RUNNER_TEMP/mt/main.swift"
+          swiftc -o "$RUNNER_TEMP/mt_test" "$RUNNER_TEMP/mt/Transport.swift" "$RUNNER_TEMP/mt/main.swift"
+          if "$RUNNER_TEMP/mt_test"; then echo "BAD: the test did not catch the old bug"; exit 1; else echo "GOOD: the test failed on the old behaviour"; fi
       - name: Build
         run: SIGN=- NO_INSTALL=1 ./build.sh
       - name: Pack

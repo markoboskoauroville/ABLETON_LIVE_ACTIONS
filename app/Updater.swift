@@ -119,5 +119,5 @@ enum Updater {
         return p.terminationStatus == 0 ? String(decoding: data, as: UTF8.self) : nil
     }
 
-    static func log(_ s: String) { NSLog("[Updater] %@", s) }
+    static func log(_ s: String) { NSLog("[Updater] %@", s); AppLog.write("[Updater] " + s) }
 }
