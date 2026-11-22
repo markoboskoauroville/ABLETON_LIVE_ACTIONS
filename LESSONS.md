@@ -76,3 +76,6 @@ rule about what is under the pointer; Live's AX tree is rich (Arrangement, Track
 An app that must be checked at widths and states needs its own off-screen render (`--studio-shot`) from its first version: the window
 was on another Space and Accessibility could not see it. A hidden second instance must be started by its executable, take no focus
 (activation policy prohibited) and start no engine.
+
+## Round 3: 10 of 10 (Fable, 22.11.2026, v25)
+Scored 10 of 10 for the rename and the Space fix: v25 installed and running, release Latest, the log shows the tap installed and the updater line, the 640 render has one title, no ON / OFF, the version once and the tabs on two lines. His test matches the decision table.
