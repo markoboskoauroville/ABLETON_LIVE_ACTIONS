@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/km" && cp app/KeyMode.swift "$RUNNER_TEMP/km/KeyMode.swift" && cp tests/keymode_test.swift "$RUNNER_TEMP/km/main.swift"
           swiftc -o "$RUNNER_TEMP/km_test" "$RUNNER_TEMP/km/KeyMode.swift" "$RUNNER_TEMP/km/main.swift" && "$RUNNER_TEMP/km_test"
-          for M in 's/if focus.live == false {/if false {/' 's/if let r = focus.role, KeyMode.textRoles.contains(r) {/if false {/' 's/if focus.dialog {/if false {/' 's/if typingFlag {/if false {/'; do
+          for M in 's/if focus.live == false {/if false {/' 's/KeyMode.textRoles.contains(r) {/KeyMode.textRoles.contains(r), false {/' 's/if focus.dialog {/if false {/' 's/if typingFlag {/if false {/'; do
             mkdir -p "$RUNNER_TEMP/kmm" && sed "$M" app/KeyMode.swift > "$RUNNER_TEMP/kmm/KeyMode.swift"
             cmp -s app/KeyMode.swift "$RUNNER_TEMP/kmm/KeyMode.swift" && { echo "the mutation $M did not apply"; exit 1; }
             cp tests/keymode_test.swift "$RUNNER_TEMP/kmm/main.swift"
