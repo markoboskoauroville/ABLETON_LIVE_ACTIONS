@@ -11,8 +11,9 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
     @Published var notice: String?                  // a line in the window (why X did not quit)
     // the window is in tabs, one per module (Marko, 27.10.2026: "organize the whole user interface in tabs"); the
     // tab last chosen comes back
+    var shotMode = false                            // the --studio-shot instance never writes his settings
     @Published var tab: String = SETTINGS.read()["tab"] as? String ?? "macros" {
-        didSet { SETTINGS.change { $0["tab"] = self.tab } }
+        didSet { if !shotMode { SETTINGS.change { $0["tab"] = self.tab } } }
     }
     lazy var item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)   // lazy: the --studio-shot instance never makes one
 
@@ -21,8 +22,10 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
     init(shot: Bool) {
         super.init()
         if shot {
+            shotMode = true
+            _ = A1Engine()          // the CUSTOM SHORTCUTS tab shows his real rows; the engine is only loaded, never started
             MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"),
-                       ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShotStub(id: "shortcuts", title: "CUSTOM SHORTCUTS"), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE")]
+                       ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShortcutsModule(), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE")]
             for m in MODULES { on[m.id] = true }
             return
         }
@@ -229,10 +232,11 @@ final class ShotStub: LiveModule {
 // key tap, no MIDI, no updater, no status item and takes no focus (activation policy prohibited). It lays the window out
 // off screen at the given width and writes <png> (at rest), <png without .png>-top.png (after TOP) and ...-resized.png
 // (after a resize), the whole window with its title bar, then exits. Nothing is shown on the Mac's screens.
-func runStudioShot(_ out: String, width: CGFloat) {
+func runStudioShot(_ out: String, width: CGFloat, tab: String? = nil) {
     let app = NSApplication.shared
     app.setActivationPolicy(.prohibited)
     let u = Umbrella(shot: true)
+    if let t = tab { u.tab = t }
     let host = NSHostingView(rootView: SettingsView(u: u))
     let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 820), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
     win.title = APP_NAME
@@ -258,7 +262,8 @@ func runStudioShot(_ out: String, width: CGFloat) {
         let a = CommandLine.arguments
         if let i = a.firstIndex(of: "--studio-shot"), i + 1 < a.count {
             let w = a.firstIndex(of: "--width").flatMap { $0 + 1 < a.count ? Double(a[$0 + 1]) : nil } ?? 820
-            runStudioShot(a[i + 1], width: CGFloat(w))
+            let tab = a.firstIndex(of: "--tab").flatMap { $0 + 1 < a.count ? a[$0 + 1] : nil }
+            runStudioShot(a[i + 1], width: CGFloat(w), tab: tab)
         }
         AbletonLiveActions.main()
     }
