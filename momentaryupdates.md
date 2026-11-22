@@ -250,3 +250,9 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 > Please, now for the Ableton. First, explain me. I... This is the most important function I'm doing on nonstop looping parts of the song. And I I don't have button to press in and out like in editing software, and then the loop bracket is jumping to this in and out. What is this? How can I do this? What are the keyboard shortcut? I want to make them like in any editing software, e and o. Or e and o is in Croatian, but in English is I o.
 
 **Status:** built in v28 to v30 (installed v30) with CUSTOM SHORTCUTS and the Launcher's box announcement; waiting for Marko's hand test.
+
+## 22.11.2026 (Marko, via the Fable master session): Space plays from the previous song, not from the insert point
+
+> Please debug right now. I have problem with my Ableton Live assistant. I think after timeline become after some length, this thing we developed that when I click with the insertion point and I press play and it plays from that point, it's broken now. Please, can you test it? There is a last song in a songs of five songs. I click somewhere in the last song. I click, and then I place space bar and place from the previous song. It doesn't follow my insertion point anymore. Please debug this thing. It's so annoying. Find the cause of bug and write it in your lessons so it never repeats again because we want to always progress never go backwards.
+
+**Status:** saved first; fix in v31 (Space never moves the playhead: stopped = plain play from the insert point, always).
