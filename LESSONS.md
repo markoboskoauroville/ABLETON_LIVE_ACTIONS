@@ -88,3 +88,11 @@ See MANTRA_MIDI_MODULES LESSONS. In this app: A1's E16 reader (A1MIDI) opens a s
 A non-activating panel (a launcher, Spotlight) takes the keys while the previous app stays frontmost; asking only the front app's own focus
 eats the letters. Ask the system-wide focus and its owner at the moment of the key (about 2 ms), fall back to the floating windows of other
 apps, and when unsure let the key through: a command that does not fire is small, a letter that cannot be typed is the bug.
+
+## 22.11.2026 (v28 to v30): custom shortcuts, I and O, the Launcher
+- A tab of many words must be rendered at the minimum width before it is called done: with six tabs the two-line layout still cut the second line; v30 has a
+  three-line layout. The off-screen render (`--studio-shot <png> --width N --tab <id>`) is the check.
+- An editing program's I and O are "where I am now": while Live plays that is the playhead at the press, which has to be read from Live and corrected by
+  half the round trip; the log line says the round trip in milliseconds so the precision is read from his own use, not guessed.
+- Keys of an app's own defaults must be overrides, not edits: his key per row lives in its own file by physical key code, the defaults stay in the code.
+- A repository that is private cannot be built by GitHub; making it public rewrites its history (author address) and needs Marko's leave: the Launcher's v6 is only source until then.
