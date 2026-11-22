@@ -35,5 +35,10 @@ grep -q 'titleVisibility = .visible' app/*.swift && { echo "FAIL titleVisibility
 grep -q 'id: "off"' app/Main.swift && { echo "FAIL the app-level OFF is back"; fail=1; }
 # the version is drawn once in the window
 [ "$(grep -c 'Text("v\\(VERSION)")' app/Main.swift)" = 1 ] || { echo "FAIL the version is not drawn exactly once in Main.swift"; fail=1; }
+# v31: the Space path never sets the song position (Marko, 22.11.2026: Space never moves the playhead or the insert point by itself)
+SP=$(awk '/func spaceDecide/{f=1} /MARK: THE MEMORY/{f=0} f' app/A1Engine.swift)
+[ -n "$SP" ] || { echo "FAIL the Space path was not found"; fail=1; }
+echo "$SP" | grep -q 'current_song_time' && { echo "FAIL the Space path sets the song position"; fail=1; }
+echo "$SP" | grep -q 'set/loop' && { echo "FAIL the Space path touches the loop"; fail=1; }
 [ $fail = 0 ] && echo "pins: OK"
 exit $fail

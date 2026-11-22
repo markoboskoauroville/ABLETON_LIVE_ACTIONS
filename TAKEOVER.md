@@ -1,5 +1,12 @@
 # TAKEOVER
 
+**THE RULE (Marko, 21.9.2026 and 22.11.2026): Space never moves the playhead or the insert point by itself: stopped = play from the insert point, always.**
+(Loop on or off, markers ticked or not, the insert point anywhere. "Play from the loop's start" is a separate command with its own row in CUSTOM SHORTCUTS and no key.)
+
+**Cause of the v21 to v30 bug (found 22.11.2026):** a stopped Space took the `playIntoLoop` branch whenever a loop was ON and the insert point lay outside it (`A1Engine.spaceDecide`, `Transport.decide`): it set the playhead to the loop's start. His I/O keys (v28: the first O turns the loop on) made a far-away loop common, so a click in the last song played from the previous one. It had nothing to do with the length of the timeline.
+**The process lesson:** "existing behaviour" is not a reason to keep a branch that contradicts the owner's stated rule. When his rule is written down, every branch that departs from it is listed for him to decide, never kept silently; and a test that encodes behaviour he did not ask for is a liability (the old test "stopped outside the loop: plays from the loop's start" passed while the app did the wrong thing). A new key that changes state (O switching the loop on) must be checked against every command that reads that state.
+
+
 - `app/Common.swift` (shared: words, JSONFile, Chord, HotKeys), `app/Module.swift` (the LiveModule protocol, MODULES), `app/Main.swift` (Umbrella: status item, menu, window), one file family per module (`A1*.swift`, `Mackie*.swift`, `MidiKeys*.swift`).
 - A new module: a class implementing LiveModule, added to the list in Umbrella.init.
 

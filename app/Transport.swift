@@ -11,7 +11,7 @@ enum SpaceAction: Equatable {
     case stopAndPlant        // Shift+Space (Continue Playback stops a running Live), then Cmd+Shift+Space (insert point to the playhead)
     case stop                // the same without the planting (the "follow" switch is off)
     case playFromInsertPoint // a plain Space: Live starts at the insert point, wherever he put it
-    case playIntoLoop        // the playhead is put at the loop's start by OSC, then Shift+Space (Continue Playback) plays from there
+    case jumpToLoopStart     // v31: NEVER returned. Space does not move the playhead to a loop's start; the workflow mutates decide to return it and the tests must fail
     case continuePlayback    // the v20 behaviour when stopped (the bug): decide never returns it; the workflow mutates decide to return it and the test must fail
     case plainSpace          // Live's own answer unknown: a plain Space toggles whichever way Live is, and nothing is planted
 }
@@ -26,11 +26,16 @@ enum Transport {
     /// register the new place): true = he clicked in Live's arrangement since this play began, false = he did not, nil =
     /// not known (the key tap was off for a while). His hand outranks the assistant: the insert point is planted on the
     /// playhead only when he is KNOWN not to have moved it; moved or unknown, the stop leaves it where it is.
-    static func decide(playing: Bool?, intoLoop: Bool, follow: Bool, userMovedWhilePlaying: Bool?) -> SpaceAction {
+    /// `loop` is accepted only so that it can be seen to be IGNORED: v31 (22.11.2026, Marko: "I click somewhere in the last song ... and
+    /// I place space bar and it plays from the previous song"). Until v30 a stopped Space jumped the playhead to an active loop's start
+    /// whenever the insert point lay outside the loop, the opposite of his rule: the insert point is the master. Stopped + Space is a
+    /// plain play from the insert point, ALWAYS: loop on or off, markers ticked or not, the insert point anywhere.
+    static func decide(playing: Bool?, follow: Bool, userMovedWhilePlaying: Bool?, loop: LoopContext? = nil) -> SpaceAction {
         guard let playing = playing else { return .plainSpace }
         if playing { return follow && userMovedWhilePlaying == false ? .stopAndPlant : .stop }
-        return intoLoop ? .playIntoLoop : .playFromInsertPoint
+        return .playFromInsertPoint
     }
+    struct LoopContext { var on: Bool; var tickedMarkers: Bool; var start: Double?; var end: Double?; var insertPoint: Double? }
 
     /// The cached reading is used only while it is fresh; otherwise nil (so the caller asks, or falls back to .plainSpace).
     static func trusted(_ cached: Bool, readAt: Double, now: Double) -> Bool? {

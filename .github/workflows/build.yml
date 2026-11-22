@@ -61,7 +61,7 @@ jobs:
         run: bash tests/pins.sh
       - name: The pins hold (mutation) - stopped goes back to Continue Playback, the test MUST fail
         run: |
-          mkdir -p "$RUNNER_TEMP/mt" && sed 's/return intoLoop ? .playIntoLoop : .playFromInsertPoint/return .continuePlayback/' app/Transport.swift > "$RUNNER_TEMP/mt/Transport.swift"
+          mkdir -p "$RUNNER_TEMP/mt" && sed 's/        return .playFromInsertPoint/        return .continuePlayback/' app/Transport.swift > "$RUNNER_TEMP/mt/Transport.swift"
           cmp -s app/Transport.swift "$RUNNER_TEMP/mt/Transport.swift" && { echo "the mutation did not apply"; exit 1; }
           cp tests/transport_test.swift "$RUNNER_TEMP/mt/main.swift"
           swiftc -o "$RUNNER_TEMP/mt_test" "$RUNNER_TEMP/mt/Transport.swift" "$RUNNER_TEMP/mt/main.swift"
@@ -73,6 +73,13 @@ jobs:
           cp tests/transport_test.swift "$RUNNER_TEMP/mt2/main.swift"
           swiftc -o "$RUNNER_TEMP/mt2_test" "$RUNNER_TEMP/mt2/Transport.swift" "$RUNNER_TEMP/mt2/main.swift"
           if "$RUNNER_TEMP/mt2_test"; then echo "BAD: the test did not catch the ignored click"; exit 1; else echo "GOOD: the test failed when the click is ignored"; fi
+      - name: The pins hold (mutation 3) - Space jumps to the loop's start again, the test MUST fail
+        run: |
+          mkdir -p "$RUNNER_TEMP/mt3" && sed 's/        return .playFromInsertPoint/        return loop?.on == true ? .jumpToLoopStart : .playFromInsertPoint/' app/Transport.swift > "$RUNNER_TEMP/mt3/Transport.swift"
+          cmp -s app/Transport.swift "$RUNNER_TEMP/mt3/Transport.swift" && { echo "the mutation did not apply"; exit 1; }
+          cp tests/transport_test.swift "$RUNNER_TEMP/mt3/main.swift"
+          swiftc -o "$RUNNER_TEMP/mt3_test" "$RUNNER_TEMP/mt3/Transport.swift" "$RUNNER_TEMP/mt3/main.swift"
+          if "$RUNNER_TEMP/mt3_test" >/dev/null; then echo "BAD: the test did not catch the loop jump"; exit 1; else echo "GOOD: the test failed when Space jumps to the loop start"; fi
       - name: Build
         run: SIGN=- NO_INSTALL=1 ./build.sh
       - name: Pack

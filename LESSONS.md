@@ -1,5 +1,12 @@
 # LESSONS
 
+**THE RULE (Marko, 21.9.2026 and 22.11.2026): Space never moves the playhead or the insert point by itself: stopped = play from the insert point, always.**
+(Loop on or off, markers ticked or not, the insert point anywhere. "Play from the loop's start" is a separate command with its own row in CUSTOM SHORTCUTS and no key.)
+
+**Cause of the v21 to v30 bug (found 22.11.2026):** a stopped Space took the `playIntoLoop` branch whenever a loop was ON and the insert point lay outside it (`A1Engine.spaceDecide`, `Transport.decide`): it set the playhead to the loop's start. His I/O keys (v28: the first O turns the loop on) made a far-away loop common, so a click in the last song played from the previous one. It had nothing to do with the length of the timeline.
+**The process lesson:** "existing behaviour" is not a reason to keep a branch that contradicts the owner's stated rule. When his rule is written down, every branch that departs from it is listed for him to decide, never kept silently; and a test that encodes behaviour he did not ask for is a liability (the old test "stopped outside the loop: plays from the loop's start" passed while the app did the wrong thing). A new key that changes state (O switching the loop on) must be checked against every command that reads that state.
+
+
 1. (13.10.2026) Inherited from DAVINCI_RESOLVE_ACTIONS: status items after launch; helpers leave when their parent dies; pkill -x by executable name.
 
 2. (24.10.2026) AbletonOSC sends every answer to port 11001 of the asker's host, never to the asker's port (osc_server.py `response_addr = (remote_hostname, self._response_port)`). One port, one listener: other apps sent orders blind. The router on 11002 inside the app that holds 11001 is the fix; a client that can't bind 11001 talks to 11002.

@@ -40,6 +40,8 @@ let A1_DEFAULT_MAPS: [[String: Any]] = [
     ["from": "o", "mods": [String](), "act": "out-now", "gets": "AbletonOSC: loop_start / loop_length, loop on", "blob": "out", "does": "OUT, as in an editing program: the loop brace's end jumps to where you are now and the loop turns on; the IN is kept", "was": "O: Playback › Metronome on or off (this key no longer toggles it); until v27 O jumped to the next transient"],
     ["from": "i", "mods": ["shift"], "act": "in-transient", "gets": "the next transient, then AbletonOSC", "blob": "transient in", "does": "IN at the next transient: the first transient to the right of the insert point, marked on its waveform's zero", "was": "⇧I: nothing in Live's menus (until v27 this was the I key)"],
     ["from": "o", "mods": ["shift"], "act": "out-transient", "gets": "the next transient, then AbletonOSC", "blob": "transient out", "does": "OUT at the next transient: the first transient to the right of the insert point, marked on its waveform's zero", "was": "⇧O: nothing in Live's menus (until v27 this was the O key)"],
+    ["from": "loopstart", "mods": [String](), "act": "play-loop-start", "unbound": true, "gets": "AbletonOSC: loop on, the playhead to the loop's start, then Continue Playback", "blob": "play from loop start",
+     "does": "Play from the loop's start: the loop turned on and the playhead put at its start (no key unless you give it one with CAPTURE; Space never does this by itself)", "was": "new in v31: until v30 Space did this whenever the insert point lay outside an active loop, which sent playback to the previous song"],
     ["from": "l", "mods": [String](), "act": "toggle", "menu": ["Edit", ["Deactivate Loop", "Activate Loop"]] as [Any], "gets": "Edit › Activate / Deactivate Loop", "blob": "loop", "does": "Turn Live's loop on, and off again (Live's own ⌘L, pressed through accessibility)", "was": "L: nothing in Live (⌘L is Deactivate Loop)"],
 ]
 // a keystroke mapping's menu item, when Live has one (MEASURED 14.9.2026): pressed instead of the keystroke
@@ -202,7 +204,8 @@ final class A1Engine: ObservableObject {
         shortcuts.rows = shortcutRows()
         shortcuts.overrides = shortcuts.overrides.filter { id, _ in shortcuts.rows.contains { $0.id == id } }
         for m in maps where (m["off"] as? Bool) != true {
-            guard var code = A1KEY["\(m["from"] ?? "")"] else { continue }
+            let unbound = (m["unbound"] as? Bool) == true
+            guard var code = unbound ? (shortcuts.overrides[mapId(m)]?.code ?? -1) : (A1KEY["\(m["from"] ?? "")"] ?? -2), code != -2, code >= 0 else { continue }
             var mm = m
             if let o = shortcuts.overrides[mapId(m)] { code = o.code; mm["from"] = o.label; mm["mods"] = o.mods }      // his own key (CUSTOM SHORTCUTS)
             if mm["act"] != nil || mm["menu"] != nil || A1KEY["\(mm["to"] ?? "")"] != nil { byCode[code, default: []].append(mm) }
@@ -487,6 +490,7 @@ final class A1Engine: ObservableObject {
                         switch a {
                         case "in", "out": self.markLoop(a)
                         case "in-now": self.markNow("in")
+                        case "play-loop-start": self.playLoopStart()
                         case "out-now": self.markNow("out")
                         case "in-transient": self.jumpToTransient("in")
                         case "out-transient": self.jumpToTransient("out")
@@ -623,26 +627,21 @@ final class A1Engine: ObservableObject {
     // afresh whether it plays (0.3 s); no answer: the cached reading only while it is fresh; else a plain Space.
     // Playing: Shift+Space stops, then the insert point is planted on the playhead. Stopped: a plain Space, which starts
     // at the insert point wherever Marko put it; nothing is planted afterwards and no stop position is remembered.
-    func spaceDecide(_ pair: OSC.Pair?, _ whence: String?) {
+    func spaceDecide(_ pair: OSC.Pair?, _ whence: String?) {      // pair and whence: for the log and the tests only, Space never uses them to move anything
         let cached = Transport.trusted(playing, readAt: playingAt, now: a1Time())
         var decided = false
         func go(_ fresh: Bool?) {
             if decided { return }; decided = true
             if let f = fresh { setPlaying(f) }
             let reading = fresh ?? cached
-            let intoLoop = pair != nil && (whence == "two ticked markers" || liveLoop.on == true) && !OSC.inside(lastBeats[knownTitle ?? ""], pair)
+            let lc = Transport.LoopContext(on: liveLoop.on == true, tickedMarkers: whence == "two ticked markers", start: pair?.a, end: pair?.b, insertPoint: lastBeats[knownTitle ?? ""])   // seen, never used by the decision
             let moved = Transport.userMoved(lastClickAt: lastClickAt, playStartAt: playStartAt, tapGapAt: tapGapAt)
-            let action = Transport.decide(playing: reading, intoLoop: intoLoop, follow: flag("follow"), userMovedWhilePlaying: moved)
+            let action = Transport.decide(playing: reading, follow: flag("follow"), userMovedWhilePlaying: moved, loop: lc)
             if reading == true { AppLog.write("Space while playing: he clicked in the arrangement since the play began: \(moved.map { $0 ? "yes" : "no" } ?? "unknown") -> \(action)") }
-            if action == .playFromInsertPoint || action == .playIntoLoop || action == .plainSpace || action == .continuePlayback { playStartAt = a1Time(); stopHold = nil }
+            if action == .playFromInsertPoint || action == .jumpToLoopStart || action == .plainSpace || action == .continuePlayback { playStartAt = a1Time(); stopHold = nil }
             switch action {
-            case .playIntoLoop:
-                let p = pair!
-                wire.tell("/live/song/set/loop", [true])
-                wire.tell("/live/song/set/current_song_time", [p.a])
-                seen.did = "stopped: the playhead to the loop's start marker (\(clock(p.a))), then Continue Playback"
-                say("Space: play from the loop's start " + clock(p.a))
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { self.post(["shift"], "space") }
+            case .jumpToLoopStart:
+                break                                   // never returned: Space does not move the playhead
             case .playFromInsertPoint:
                 seen.did = "stopped: a plain Space, Live plays from the insert point"
                 say("Space: play from the insert point")

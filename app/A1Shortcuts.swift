@@ -23,6 +23,7 @@ extension A1Engine {
     }
     func shortcutRows() -> [ShortcutRow] {
         maps.compactMap { m in
+            if (m["unbound"] as? Bool) == true { return ShortcutRow(id: mapId(m), name: shortcutName(m), original: KeySpec(code: -1, mods: [], label: "no key")) }
             guard let code = A1KEY["\(m["from"] ?? "")"] else { return nil }
             return ShortcutRow(id: mapId(m), name: shortcutName(m), original: KeySpec(code: code, mods: mapMods(m), label: shortLabel("\(m["from"] ?? "")")))
         }
@@ -41,6 +42,7 @@ extension A1Engine {
     /// the key a row has now, as the tab and the A1 tab show it
     func effectiveChord(_ m: [String: Any]) -> String {
         if let o = shortcuts.overrides[mapId(m)] { return o.shown }
+        if (m["unbound"] as? Bool) == true { return "no key" }
         return a1Chord(mapMods(m), "\(m["from"] ?? "")")
     }
 
@@ -123,6 +125,16 @@ extension A1Engine {
     }
     static let launcherTimeout = 60.0
     var launcherBoxActive: Bool { launcherBox && a1Time() - launcherAt < A1Engine.launcherTimeout }
+
+    /// "Play from the loop's start": a command of its own, with no key until he gives it one (v31). Space never does this.
+    func playLoopStart() {
+        let (pair, _) = braceOf()
+        guard let p = pair else { say("play from the loop start: no loop is set"); return }
+        wire.tell("/live/song/set/loop", [true]); liveLoop.on = true
+        wire.tell("/live/song/set/current_song_time", [p.a])
+        say("play from the loop's start " + clock(p.a)); AppLog.write("play-loop-start: the playhead to \(clock(p.a))")
+        if !playing { DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { self.post(["shift"], "space") } }
+    }
 
     // I AND O (v28)
     var snapIn: LoopMarks.Snap { LoopMarks.Snap(rawValue: str("snapIn", "off")) ?? .off }

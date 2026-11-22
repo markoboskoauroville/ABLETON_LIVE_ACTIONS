@@ -17,12 +17,12 @@ struct FakeLive {
     mutating func click(_ beats: Double) { insert = beats }                                                  // he clicks the waveform
     mutating func run(_ beats: Double) { if playing { playhead += beats } }
     // what the app does for a Space press: the decision, then the keys
-    mutating func press(_ reading: Bool?, intoLoop: Bool = false, loopStart: Double = 0, follow: Bool = true, moved: Bool? = false) {
-        switch Transport.decide(playing: reading, intoLoop: intoLoop, follow: follow, userMovedWhilePlaying: moved) {
+    mutating func press(_ reading: Bool?, loop: Transport.LoopContext? = nil, follow: Bool = true, moved: Bool? = false) {
+        switch Transport.decide(playing: reading, follow: follow, userMovedWhilePlaying: moved, loop: loop) {
         case .stopAndPlant: shiftSpace(); plant()
         case .stop: shiftSpace()
         case .playFromInsertPoint: space()
-        case .playIntoLoop: playhead = loopStart; stopPos = loopStart; shiftSpace()
+        case .jumpToLoopStart: playhead = loop?.start ?? 0; stopPos = playhead; shiftSpace()      // the old, wrong behaviour: never returned
         case .continuePlayback: shiftSpace()
         case .plainSpace: space()
         }
@@ -35,9 +35,9 @@ do {
     l.press(true)
     ok(!l.playing, "(a) playing + Space stops")
     ok(l.insert == 42 && l.stopPos == 42, "(a) the insert point is planted on the playhead (42), got \(l.insert)")
-    ok(Transport.decide(playing: true, intoLoop: false, follow: true, userMovedWhilePlaying: false) == .stopAndPlant, "(a) decide: playing -> stopAndPlant")
-    ok(Transport.decide(playing: true, intoLoop: true, follow: true, userMovedWhilePlaying: false) == .stopAndPlant, "(a) decide: playing, loop irrelevant")
-    ok(Transport.decide(playing: true, intoLoop: false, follow: false, userMovedWhilePlaying: false) == .stop, "(a) follow off: stop without planting")
+    ok(Transport.decide(playing: true, follow: true, userMovedWhilePlaying: false) == .stopAndPlant, "(a) decide: playing -> stopAndPlant")
+    ok(Transport.decide(playing: true, follow: true, userMovedWhilePlaying: false) == .stopAndPlant, "(a) decide: playing, loop irrelevant")
+    ok(Transport.decide(playing: true, follow: false, userMovedWhilePlaying: false) == .stop, "(a) follow off: stop without planting")
 }
 // stopped + play, insert point untouched: starts where it stopped
 do {
@@ -63,7 +63,7 @@ do {
     ok(stale == nil, "stale reading: not trusted after \(Transport.freshFor) s")
     l.press(stale)                      // unknown -> plain Space
     ok(l.playing && l.playhead == 77, "stop, quick user move, stale reading, play: starts at 77, got \(l.playhead)")
-    ok(Transport.decide(playing: nil, intoLoop: true, follow: true, userMovedWhilePlaying: false) == .plainSpace, "unknown reading: plain Space even with a loop")
+    ok(Transport.decide(playing: nil, follow: true, userMovedWhilePlaying: false) == .plainSpace, "unknown reading: plain Space even with a loop")
     ok(Transport.trusted(false, readAt: 100.0, now: 100.5) == false, "fresh reading is kept")
 }
 // stale reading that says "playing" while Live is in fact stopped and the insert point was moved: never Continue Playback
@@ -72,25 +72,39 @@ do {
     l.press(Transport.trusted(true, readAt: 0, now: 10))
     ok(l.playhead == 60, "stale 'playing' on a stopped Live: still starts at the insert point 60, got \(l.playhead)")
 }
-// the loop case is kept: stopped, outside the loop, a loop in force
+// v31 (22.11.2026): Space never moves the playhead to a loop: stopped + Space = a plain play from the insert point, ALWAYS
 do {
-    var l = FakeLive(); l.insert = 200; l.stopPos = 200
-    l.press(false, intoLoop: true, loopStart: 64)
-    ok(l.playing && l.playhead == 64, "stopped outside the loop: plays from the loop's start 64, got \(l.playhead)")
-    ok(Transport.decide(playing: false, intoLoop: false, follow: true, userMovedWhilePlaying: false) == .playFromInsertPoint, "decide: stopped, no loop -> playFromInsertPoint")
+    var n = 0
+    for loopOn in [false, true] { for ticked in [false, true] {
+        for minutes in [0.5, 60.0] {                                  // 0:30 and 60 minutes into the timeline, at 120 BPM
+            let beatsPerMin = 120.0, loopStart = 17.8 * 60 * beatsPerMin / 60, loopEnd = loopStart + 32
+            for ip in [10.0, loopStart - 100, loopStart, loopStart + 8, loopEnd + 1, minutes * beatsPerMin, minutes * beatsPerMin + 5000] {   // before, inside, after the loop, far in the timeline
+                let ctx = Transport.LoopContext(on: loopOn, tickedMarkers: ticked, start: loopStart, end: loopEnd, insertPoint: ip)
+                let a = Transport.decide(playing: false, follow: true, userMovedWhilePlaying: false, loop: ctx)
+                ok(a == .playFromInsertPoint, "stopped + Space, loop \(loopOn), ticked \(ticked), insert point \(ip): a plain play from the insert point, nothing else, got \(a)")
+                var l = FakeLive(); l.insert = ip; l.stopPos = loopStart; l.playhead = loopStart
+                l.press(false, loop: ctx)
+                ok(l.playing && l.playhead == ip, "the model: it starts at the insert point \(ip), not at the loop's start, got \(l.playhead)")
+                n += 1
+            }
+        }
+    } }
+    ok(n == 56, "every combination was tried (\(n))")
+    let ctx = Transport.LoopContext(on: true, tickedMarkers: true, start: 1, end: 9, insertPoint: 500)
+    ok(Transport.decide(playing: nil, follow: true, userMovedWhilePlaying: false, loop: ctx) == .plainSpace, "unknown reading: a plain Space, the loop ignored")
+    ok(Transport.decide(playing: true, follow: true, userMovedWhilePlaying: false, loop: ctx) == .stopAndPlant, "playing: stop and plant, the loop ignored")
 }
-
 // ---- v23: he clicks on the waveform WHILE Live plays (22.11.2026) ----
 // the decision table
 do {
-    let d = Transport.decide
-    ok(d(true, false, true, false) == .stopAndPlant, "table: playing, not moved -> stopAndPlant (his 'works perfectly')")
-    ok(d(true, false, true, true) == .stop, "table: playing, moved -> stop only, nothing planted")
-    ok(d(true, false, true, nil) == .stop, "table: playing, unknown -> stop only (his chosen place is never lost)")
-    ok(d(true, false, false, false) == .stop, "table: playing, follow off -> stop only")
-    ok(d(false, false, true, true) == .playFromInsertPoint, "table: stopped -> plain play, whatever the flag")
-    ok(d(false, false, true, false) == .playFromInsertPoint, "table: stopped, flag false -> plain play")
-    ok(d(false, true, true, nil) == .playIntoLoop, "table: stopped, loop -> into the loop")
+    func d(_ p: Bool?, _ follow: Bool, _ moved: Bool?) -> SpaceAction { Transport.decide(playing: p, follow: follow, userMovedWhilePlaying: moved) }
+    ok(d(true, true, false) == .stopAndPlant, "table: playing, not moved -> stopAndPlant (his 'works perfectly')")
+    ok(d(true, true, true) == .stop, "table: playing, moved -> stop only, nothing planted")
+    ok(d(true, true, nil) == .stop, "table: playing, unknown -> stop only (his chosen place is never lost)")
+    ok(d(true, false, false) == .stop, "table: playing, follow off -> stop only")
+    ok(d(false, true, true) == .playFromInsertPoint, "table: stopped -> plain play, whatever the flag")
+    ok(d(false, true, false) == .playFromInsertPoint, "table: stopped, flag false -> plain play")
+    ok(d(false, true, nil) == .playFromInsertPoint, "table: stopped, flag unknown -> plain play")
 }
 // click during play, then stop, then play: starts at the click
 do {
