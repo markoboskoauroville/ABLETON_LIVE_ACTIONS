@@ -52,7 +52,7 @@ jobs:
           cp tests/loopmarks_test.swift "$RUNNER_TEMP/lmm/main.swift"
           swiftc -o "$RUNNER_TEMP/lmm_test" "$RUNNER_TEMP/lmm/LoopMarks.swift" "$RUNNER_TEMP/lmm/main.swift"
           if "$RUNNER_TEMP/lmm_test" >/dev/null; then echo "BAD: the loop tests did not catch I forgetting the OUT"; exit 1; else echo "GOOD: the loop tests failed when I forgets the OUT"; fi
-          mkdir -p "$RUNNER_TEMP/scm" && cp app/KeyMode.swift "$RUNNER_TEMP/scm/" && sed 's/current(\$0.id)?.same(code: code, mods: mods) == true/false/' app/Shortcuts.swift > "$RUNNER_TEMP/scm/Shortcuts.swift"
+          mkdir -p "$RUNNER_TEMP/scm" && cp app/KeyMode.swift "$RUNNER_TEMP/scm/" && sed 's/code: code, mods: mods) == true }/code: code, mods: mods) == true \&\& 1 == 2 }/' app/Shortcuts.swift > "$RUNNER_TEMP/scm/Shortcuts.swift"
           cmp -s app/Shortcuts.swift "$RUNNER_TEMP/scm/Shortcuts.swift" && { echo "mutation did not apply"; exit 1; }
           cp tests/shortcuts_test.swift "$RUNNER_TEMP/scm/main.swift"
           swiftc -o "$RUNNER_TEMP/scm_test" "$RUNNER_TEMP/scm/Shortcuts.swift" "$RUNNER_TEMP/scm/KeyMode.swift" "$RUNNER_TEMP/scm/main.swift"
