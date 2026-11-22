@@ -79,3 +79,7 @@ was on another Space and Accessibility could not see it. A hidden second instanc
 
 ## Round 3: 10 of 10 (Fable, 22.11.2026, v25)
 Scored 10 of 10 for the rename and the Space fix: v25 installed and running, release Latest, the log shows the tap installed and the updater line, the 640 render has one title, no ON / OFF, the version once and the tabs on two lines. His test matches the decision table.
+
+## 22.11.2026 (v26): shared MIDI modules
+See MANTRA_MIDI_MODULES LESSONS. In this app: A1's E16 reader (A1MIDI) opens a second input port on the same sources: it only shows incoming MIDI, so it is harmless
+(two readers of one source, one action).

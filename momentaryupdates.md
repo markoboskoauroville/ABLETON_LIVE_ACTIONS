@@ -237,4 +237,4 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 
 > All the MIDI modules should only be actually in both places. We are sharing the modules. We can do that. So because they are shared modules, they also share the settings. It's the same thing, just in different views.
 
-**Status:** saved first; design sent to the master; building.
+**Status:** v26 built by GitHub, installed, proven with MIDI Tools v4.
