@@ -106,3 +106,5 @@ apps, and when unsure let the key through: a command that does not fire is small
 
 ## 23.11.2026 (v32): AbletonOSC on 11010/11011
 AbletonOSC moved to UDP 11010 (listen) / 11011 (reply) on 23.11.2026; Suno Bridge owns 11000. The shared/MackieIO.swift copy (MANTRA_MIDI_MODULES) still has the old 11000 for its Log.txt probe until that repo is updated.
+
+- v33: shared/ moved to a4bb302, the Mackie probe now uses AbletonOSC 11010 (23.11.2026)
