@@ -70,7 +70,7 @@ def dec(b):
 
 
 # USE, LET GO (Marko, 31.10.2026): a question takes the shared turn on Live's answer port and lets it go
-# (helpers/liveosc.py); this script no longer keeps 11001 while it runs. LIVE stays for the callers' messages.
+# (helpers/liveosc.py); this script no longer keeps 11011 while it runs. LIVE stays for the callers' messages.
 import liveosc
 LIVE = liveosc.LIVE
 
@@ -89,7 +89,7 @@ def send(addr, *args):
 
 
 def holder():
-    out = subprocess.run(["/usr/sbin/lsof", "-nP", "-iUDP:11001", "-Fc"], capture_output=True, text=True).stdout
+    out = subprocess.run(["/usr/sbin/lsof", "-nP", "-iUDP:11011", "-Fc"], capture_output=True, text=True).stdout
     return ", ".join(l[1:] for l in out.splitlines() if l.startswith("c")) or "nobody"
 
 
@@ -234,7 +234,7 @@ def rest():
     except RuntimeError as e:
         n = None; say(f"  AbletonOSC: {e}")
     if not n:
-        why = (f"port 11001 is held by {holder()} without the router on 11002: switch Ableton Live Actions' A1 on, "
+        why = (f"port 11011 is held by {holder()} without the router on 11002: switch Ableton Live Actions' A1 on, "
                f"or stop the other listener") if LIVE[1] == 11002 else "is AbletonOSC Live's Control Surface?"
         say(f"STOPPED: Live did not answer ({why})"); return 1
     tracks = n[0]

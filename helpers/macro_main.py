@@ -16,7 +16,7 @@ def main():
     say("MACRO Route Every Track to Main (In the Box)" + ("  (dry: nothing is changed)" if DRY else ""))
     n = q("/live/song/get/num_tracks")
     if not n:
-        say("STOPPED: Live did not answer" + (f" (11001 held by {holder()})" if LIVE[1] == 11002 else "")); return 1
+        say("STOPPED: Live did not answer" + (f" (11011 held by {holder()})" if LIVE[1] == 11002 else "")); return 1
     tracks = n[0]
     for t in range(tracks):
         if DRY: continue

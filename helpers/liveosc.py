@@ -4,12 +4,12 @@
 Marko, 31.10.2026: "if there are two sessions accessing at the same time, one cannot block the other. If one is not
 using it, you can use it. It's not permanent block. You use it and you let go. Always like this. Use, let go."
 
-AbletonOSC (Live's Control Surface) takes questions on UDP 11000 and answers to port 11001, always 11001. Until today a
-program bound 11001 and kept it while it lived (MANTRA_STAR a1_ears.py, Ableton Live Actions' wire), and every other
+AbletonOSC (Live's Control Surface) takes questions on UDP 11010 and answers to port 11011, always 11011. Until today a
+program bound 11011 and kept it while it lived (MANTRA_STAR a1_ears.py, Ableton Live Actions' wire), and every other
 program got no answers. Now nobody keeps it:
 
   * a QUESTION (an address with /get/, or /live/test) takes the turn (an exclusive flock on ~/.config/liveosc.lock),
-    binds 11001, asks, reads its own answer, closes the port and lets the turn go: tens of milliseconds, at most WAIT;
+    binds 11011, asks, reads its own answer, closes the port and lets the turn go: tens of milliseconds, at most WAIT;
   * an ORDER (set, play, stop ...) has no answer: it goes out from any socket, no turn, no port.
 
 A program waiting for its turn waits at most TURN seconds; a turn is never longer than WAIT, so nobody waits long.
@@ -30,8 +30,8 @@ import struct
 import sys
 import time
 
-LIVE = ("127.0.0.1", 11000)
-ANSWER = 11001
+LIVE = ("127.0.0.1", 11010)
+ANSWER = 11011
 LOCK = os.path.expanduser("~/.config/liveosc.lock")
 WAIT = 1.5          # the longest a turn is held: one question and its answer
 TURN = 6.0          # the longest a program waits for its turn
@@ -86,7 +86,7 @@ def is_question(address):
 
 
 def holder():
-    """who has 11001 bound right now (a program from before USE, LET GO keeps it)"""
+    """who has 11011 bound right now (a program from before USE, LET GO keeps it)"""
     try:
         import subprocess
         out = subprocess.run(["/usr/sbin/lsof", "-nP", "-iUDP:%d" % ANSWER, "-Fpc"], capture_output=True, text=True).stdout
@@ -114,7 +114,7 @@ class Turn:
             try:
                 self.s.bind(("127.0.0.1", ANSWER)); break
             except OSError:
-                # a program from before USE, LET GO still keeps 11001
+                # a program from before USE, LET GO still keeps 11011
                 if time.time() > end:
                     self.s.close(); fcntl.flock(self.f, fcntl.LOCK_UN); self.f.close()
                     raise OSError("port %d is kept by %s (an old version: it must let go)" % (ANSWER, holder()))

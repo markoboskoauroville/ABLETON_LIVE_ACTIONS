@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """fake_abletonosc.py: Live's OSC without Live, for testing the programs that talk to it (31.10.2026).
 
-AbletonOSC listens on UDP 11000 and answers to the asker's address on port 11001. This does the same with made-up
+AbletonOSC listens on UDP 11010 and answers to the asker's address on port 11011. This does the same with made-up
 values, so USE, LET GO (helpers/liveosc.py, manifest ableton-live-audio.md) can be tested with Live closed:
 
     /live/test                         -> ["ok"]
@@ -11,9 +11,9 @@ values, so USE, LET GO (helpers/liveosc.py, manifest ableton-live-audio.md) can 
     /live/song/get/is_playing          -> [False]
     /live/track/get/<what> t           -> [t, "Track t" / 0 / False]   (the index first, as AbletonOSC does)
     any other /get/                    -> [args..., 0]
-    /live/song/start_listen/is_playing -> pushes /live/song/get/is_playing [False] to 11001 every second (a listener)
+    /live/song/start_listen/is_playing -> pushes /live/song/get/is_playing [False] to 11011 every second (a listener)
 
-It refuses to start while Live (or anything) holds 11000. Every message it hears is printed.
+It refuses to start while Live (or anything) holds 11010. Every message it hears is printed.
 
     python3 fake_abletonosc.py
 """
@@ -24,14 +24,14 @@ from liveosc import encode, decode   # noqa: E402
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 try:
-    s.bind(("127.0.0.1", 11000))
+    s.bind(("127.0.0.1", 11010))
 except OSError:
-    sys.exit("11000 is held (Live is running?): the fake does not start")
+    sys.exit("11010 is held (Live is running?): the fake does not start")
 listeners = set()
 
 
 def reply(host, address, args):
-    s.sendto(encode(address, args), (host, 11001))
+    s.sendto(encode(address, args), (host, 11011))
 
 
 def pusher():
@@ -42,7 +42,7 @@ def pusher():
 
 
 threading.Thread(target=pusher, daemon=True).start()
-print("fake AbletonOSC on 11000, answers to 11001", flush=True)
+print("fake AbletonOSC on 11010, answers to 11011", flush=True)
 while True:
     data, (host, port) = s.recvfrom(65536)
     a, args = decode(data)

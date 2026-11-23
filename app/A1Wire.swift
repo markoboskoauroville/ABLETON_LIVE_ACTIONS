@@ -1,7 +1,7 @@
-// A1'S WIRE TO ABLETONOSC (Live's Control Surface): questions and orders go to UDP 127.0.0.1:11000, answers come back to
-// port 11001, always 11001. USE, LET GO (Marko, 31.10.2026: "if there are two sessions accessing at the same time, one
-// cannot block the other ... You use it and you let go. Always like this."): this wire no longer keeps 11001 while the
-// app runs, and the router on 11002 (24.10.2026) is gone with it. A question takes the shared turn on 11001
+// A1'S WIRE TO ABLETONOSC (Live's Control Surface): questions and orders go to UDP 127.0.0.1:11010, answers come back to
+// port 11011, always 11011. USE, LET GO (Marko, 31.10.2026: "if there are two sessions accessing at the same time, one
+// cannot block the other ... You use it and you let go. Always like this."): this wire no longer keeps 11011 while the
+// app runs, and the router on 11002 (24.10.2026) is gone with it. A question takes the shared turn on 11011
 // (LiveTurn.swift: flock ~/.config/liveosc.lock, bind, ask, read its answer, let go) on a background queue and the answer
 // comes back on the main queue as before; an order goes from any socket. Every other program on the Mac takes the same
 // turn (helpers/liveosc.py, MANTRA_STAR a1_ears.py), so none needs a router any more.
@@ -9,7 +9,7 @@ import Foundation
 import Darwin
 
 final class A1Wire {
-    static let ANSWER: UInt16 = 11001
+    static let ANSWER: UInt16 = 11011
     var state = "not started"                 // "sharing" once started
     var asked = 0, answered = 0
     var lastAnswer: Double?
@@ -32,7 +32,7 @@ final class A1Wire {
     @discardableResult func send(_ addr: String, _ args: [Any] = []) -> Bool {
         if state != "sharing" { start() }
         let d = OSC.message(addr, args)
-        var to = sockaddr_in(); to.sin_family = sa_family_t(AF_INET); to.sin_port = UInt16(11000).bigEndian
+        var to = sockaddr_in(); to.sin_family = sa_family_t(AF_INET); to.sin_port = UInt16(11010).bigEndian
         to.sin_addr.s_addr = inet_addr("127.0.0.1")
         let n = d.withUnsafeBytes { p in withUnsafePointer(to: &to) { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { sendto(spare, p.baseAddress, d.count, 0, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) } } }
         return n == d.count

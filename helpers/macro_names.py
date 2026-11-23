@@ -25,7 +25,7 @@ def main():
     say(f"MACRO Names between Live and the CQ12T  ({way})")
     n = q("/live/song/get/num_tracks")
     if not n:
-        say("STOPPED: Live did not answer" + (f" (11001 held by {holder()})" if LIVE[1] == 11002 else "")); return 1
+        say("STOPPED: Live did not answer" + (f" (11011 held by {holder()})" if LIVE[1] == 11002 else "")); return 1
     count = min(n[0], mixpad.CQ_INPUTS)
     live = {t + 1: (q("/live/track/get/name", t) or [t, ""])[1] for t in range(count)}
 

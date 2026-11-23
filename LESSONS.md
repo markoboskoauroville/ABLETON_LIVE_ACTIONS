@@ -103,3 +103,6 @@ apps, and when unsure let the key through: a command that does not fire is small
   half the round trip; the log line says the round trip in milliseconds so the precision is read from his own use, not guessed.
 - Keys of an app's own defaults must be overrides, not edits: his key per row lives in its own file by physical key code, the defaults stay in the code.
 - A repository that is private cannot be built by GitHub; making it public rewrites its history (author address) and needs Marko's leave: the Launcher's v6 is only source until then.
+
+## 23.11.2026 (v32): AbletonOSC on 11010/11011
+AbletonOSC moved to UDP 11010 (listen) / 11011 (reply) on 23.11.2026; Suno Bridge owns 11000. The shared/MackieIO.swift copy (MANTRA_MIDI_MODULES) still has the old 11000 for its Log.txt probe until that repo is updated.

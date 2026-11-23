@@ -1,8 +1,8 @@
 // LIVE'S OSC, SHARED: USE, LET GO (Marko, 31.10.2026: "if there are two sessions accessing at the same time, one cannot
 // block the other ... You use it and you let go. Always like this.").
 //
-// AbletonOSC answers every question to UDP 11001. Nobody keeps that port: a question takes the turn (an exclusive flock
-// on ~/.config/liveosc.lock), binds 127.0.0.1:11001 (without SO_REUSEADDR, so a program from before the rule is waited
+// AbletonOSC answers every question to UDP 11011. Nobody keeps that port: a question takes the turn (an exclusive flock
+// on ~/.config/liveosc.lock), binds 127.0.0.1:11011 (without SO_REUSEADDR, so a program from before the rule is waited
 // for, never robbed), sends, reads its own answer (the address, and for a track question its index first), closes the
 // port and lets the turn go. An order has no answer: any socket, no turn. The same rule and lock as ABLETON_LIVE_ACTIONS
 // helpers/liveosc.py and MANTRA_STAR a1_ears.py (manifest ableton-live-audio.md). This file is copied as it is into
@@ -11,7 +11,7 @@ import Foundation
 import Darwin
 
 enum LiveTurn {
-    static let ANSWER: UInt16 = 11001
+    static let ANSWER: UInt16 = 11011
     static let WAIT = 1.5             // the longest a turn is held: one question and its answer
     static let TURN = 6.0             // the longest a program waits for its turn
     static var lockPath: String { NSHomeDirectory() + "/.config/liveosc.lock" }
@@ -74,7 +74,7 @@ enum LiveTurn {
     @discardableResult static func tell(_ address: String, _ args: [Any] = []) -> Bool {
         let fd = socket(AF_INET, SOCK_DGRAM, 0); guard fd >= 0 else { return false }
         defer { close(fd) }
-        return sendto(fd, message(address, args), 11000)
+        return sendto(fd, message(address, args), 11010)
     }
 
     /// A question to Live in one turn: its answer's arguments, or nil (no answer in time, no turn, or the port kept by
@@ -100,7 +100,7 @@ enum LiveTurn {
         }
         var tv = timeval(tv_sec: 0, tv_usec: 50_000)
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-        guard sendto(fd, message(address, args), 11000) else { return nil }
+        guard sendto(fd, message(address, args), 11010) else { return nil }
         let end = Date().addingTimeInterval(wait)
         var buf = [UInt8](repeating: 0, count: 65536)
         while Date() < end {
