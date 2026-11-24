@@ -1,8 +1,14 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..313d257 100644
+index 6c058f6..5bcd234 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
-@@ -18,3 +18,310 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -1,4 +1,5 @@
+ import Live
++import os
+ from typing import Tuple
+ from .handler import AbletonOSCHandler
+ 
+@@ -18,3 +19,392 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -257,6 +263,13 @@ index 6c058f6..313d257 100644
 +        #       file path, start, end, start marker, end marker (seconds unwarped, beats warped), warping, muted, warp
 +        #       markers n, then n pairs (beat, seconds)
 +        #--------------------------------------------------------------------------------
++        def read_mode_early():
++            try:
++                with open(os.path.expanduser("~/.config/mantra-live-playback-mode")) as f: m = f.read().strip()
++            except Exception:
++                m = ""
++            return m if m in ("return", "continue") else "return"
++
 +        def remote_audio_clips(track):
 +            if track.is_foldable:
 +                return []
@@ -294,6 +307,8 @@ index 6c058f6..313d257 100644
 +                except Exception: pass
 +                out += [str(t.name), int(t.color), kind, (int(t.arm) if armable else -1), int(t.mute),
 +                        int(t.solo), len(clips), csum, vol]
++            # 24.11.2026, after the tracks (older readers stop before them): the insert point and the playback mode
++            out += [float(song.start_time), read_mode_early()]
 +            return tuple(out)
 +        self.osc_server.add_handler("/live/mantra/remote/state", remote_state)
 +
@@ -313,3 +328,76 @@ index 6c058f6..313d257 100644
 +                        int(c.warping), int(c.muted), len(markers) // 2] + markers
 +            return tuple(out)
 +        self.osc_server.add_handler("/live/mantra/remote/clips", remote_clips)
++
++        #   /live/mantra/remote/song_dir <part>   the names of Song's attributes containing <part> (a probe, 24.11.2026)
++        def remote_song_dir(params) -> Tuple:
++            song = Live.Application.get_application().get_document()
++            part = str(params[0]).lower() if params else ""
++            return tuple(n for n in dir(song) if part in n.lower() and not n.startswith("_"))
++        self.osc_server.add_handler("/live/mantra/remote/song_dir", remote_song_dir)
++
++        #   /live/mantra/start_time [beats]   Live's insert point (Song.start_time, where Play and Space start): read, or set
++        #   (Ableton Live Remote, 24.11.2026: "every time I click play, it plays from the beginning")
++        def remote_start_time(params) -> Tuple:
++            song = Live.Application.get_application().get_document()
++            if params: song.start_time = max(0.0, float(params[0]))
++            return (float(song.start_time),)
++        self.osc_server.add_handler("/live/mantra/start_time", remote_start_time)
++
++        #--------------------------------------------------------------------------------
++        # The playback mode, Live's own behaviour after ANY stop (Space, Live's buttons, a controller, OSC), with or
++        # without the phone (Marko, 24.11.2026: "two ways of playback ... DAW playback or DaVinci playback ... It's
++        # setting Ableton Live actually"):
++        #   "return"    the DAW way: the playhead goes back to the insert point; every Play starts there again
++        #   "continue"  the editing way (DaVinci Resolve): the insert point moves to where playback stopped
++        # Kept in ~/.config/mantra-live-playback-mode (one word), read again on every change, so Ableton Live Assistant and
++        # the remote's helper set the same switch. Watched here every 100 ms tick; a change made from a scheduled message
++        # is allowed (a listener callback may not change the song).
++        #   /live/mantra/playback_mode [return|continue]   answers the mode (and sets it when given)
++        #--------------------------------------------------------------------------------
++        import os
++        mode_file = os.path.expanduser("~/.config/mantra-live-playback-mode")
++
++        def read_mode():
++            try:
++                with open(mode_file) as f: m = f.read().strip()
++            except Exception:
++                m = ""
++            return m if m in ("return", "continue") else "return"
++
++        def playback_mode(params) -> Tuple:
++            if params and str(params[0]) in ("return", "continue"):
++                try:
++                    os.makedirs(os.path.dirname(mode_file), exist_ok=True)
++                    with open(mode_file, "w") as f: f.write(str(params[0]) + "\n")
++                except Exception as e:
++                    self.logger.error("playback mode not written: %s" % e)
++            return (read_mode(),)
++        self.osc_server.add_handler("/live/mantra/playback_mode", playback_mode)
++
++        manager = self.manager
++        generation = getattr(manager, "_mantra_playback_gen", 0) + 1
++        manager._mantra_playback_gen = generation          # a reload starts a new watcher; the old one sees this and ends
++        watch = {"was": False, "mode": read_mode(), "checked": 0}
++
++        def watch_stop():
++            if getattr(manager, "_mantra_playback_gen", 0) != generation:
++                return
++            try:
++                song = Live.Application.get_application().get_document()
++                playing = bool(song.is_playing)
++                watch["checked"] += 1
++                if watch["checked"] % 10 == 0:
++                    watch["mode"] = read_mode()               # once a second: the switch may have been turned elsewhere
++                if watch["was"] and not playing:
++                    mode = read_mode()
++                    watch["mode"] = mode
++                    if mode == "continue":
++                        song.start_time = float(song.current_song_time)
++                    else:
++                        song.current_song_time = float(song.start_time)
++                watch["was"] = playing
++            except Exception as e:
++                self.logger.error("playback mode watcher: %s" % e)
++            manager.schedule_message(1, watch_stop)
++        manager.schedule_message(1, watch_stop)
