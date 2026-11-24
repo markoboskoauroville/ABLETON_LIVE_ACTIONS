@@ -1,5 +1,5 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..5dfb0d0 100644
+index 6c058f6..3133c5a 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
 @@ -1,4 +1,5 @@
@@ -8,7 +8,7 @@ index 6c058f6..5dfb0d0 100644
  from typing import Tuple
  from .handler import AbletonOSCHandler
  
-@@ -18,3 +19,459 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -18,3 +19,462 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -436,6 +436,7 @@ index 6c058f6..5dfb0d0 100644
 +
 +        def pb_play(_=None) -> Tuple:
 +            song = Live.Application.get_application().get_document()
++            self.logger.info("Mantra play (paused %s, playing %s)" % (getattr(manager, "_mantra_paused", False), song.is_playing))
 +            if getattr(manager, "_mantra_paused", False):
 +                manager._mantra_paused = False
 +                song.continue_playing()
@@ -446,6 +447,7 @@ index 6c058f6..5dfb0d0 100644
 +
 +        def pb_pause(_) -> Tuple:
 +            song = Live.Application.get_application().get_document()
++            self.logger.info("Mantra pause (paused %s, playing %s)" % (getattr(manager, "_mantra_paused", False), song.is_playing))
 +            if song.is_playing:
 +                manager._mantra_paused = True
 +                if song.record_mode: song.record_mode = False
@@ -457,6 +459,7 @@ index 6c058f6..5dfb0d0 100644
 +
 +        def pb_stop(_) -> Tuple:
 +            song = Live.Application.get_application().get_document()
++            self.logger.info("Mantra stop (paused %s, playing %s)" % (getattr(manager, "_mantra_paused", False), song.is_playing))
 +            if getattr(manager, "_mantra_paused", False) and not song.is_playing:
 +                manager._mantra_paused = False
 +                if read_mode() == "continue": song.start_time = float(song.current_song_time)
