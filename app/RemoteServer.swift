@@ -274,7 +274,12 @@ final class RemoteServer {
         else if n < 65536 { f += [126, UInt8(n >> 8), UInt8(n & 0xFF)] }
         else { f.append(127); for i in (0..<8).reversed() { f.append(UInt8((n >> (i * 8)) & 0xFF)) } }
         f += payload
-        p.c.send(content: Data(f), completion: .contentProcessed { _ in })
+        // v35: a phone that went away without closing (app killed, Wi-Fi gone) is dropped at the first failed send, so it
+        // no longer counts as connected (v34 showed "2 PHONES" for one phone after two restarts of the app)
+        let id = ObjectIdentifier(p)
+        p.c.send(content: Data(f), completion: .contentProcessed { [weak self] err in
+            if err != nil { DispatchQueue.main.async { self?.drop(id) } }
+        })
     }
 }
 
