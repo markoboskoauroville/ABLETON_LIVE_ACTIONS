@@ -25,11 +25,11 @@ final class Umbrella: NSObject, ObservableObject, NSMenuDelegate {
             shotMode = true
             _ = A1Engine(); A1Engine.shared.tapOK = true          // the CUSTOM SHORTCUTS tab shows his real rows; the engine is only loaded, never started
             MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"),
-                       ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShortcutsModule(), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE")]
+                       ShotStub(id: "a1", title: "ABLETON ASSISTANT A1"), ShortcutsModule(), ShotStub(id: "mackie", title: "MIDI TO MK CONTROL"), ShotStub(id: "midikeys", title: "MIDI TO KEY STROKE"), ShotStub(id: "remote", title: "PHONE REMOTE")]
             for m in MODULES { on[m.id] = true }
             return
         }
-        MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"), A1Module(), ShortcutsModule(), MackieModule(), MidiKeysModule()]   // MACROS first: the one he uses (27.10.2026)
+        MODULES = [MacrosModule(), MacrosModule(id: "audio", title: "AUDIO", about: "actions on audio files in the set: a name and RUN; CHECK only looks", list: AUDIO_ACTIONS, noun: "ACTION"), A1Module(), ShortcutsModule(), MackieModule(), MidiKeysModule(), RemoteModule()]   // MACROS first: the one he uses (27.10.2026)
         let saved = SETTINGS.read()["modules"] as? [String: Bool] ?? [:]
         let shared = MidiShared.load()        // the MIDI modules' on / off is ONE state for both apps (MANTRA_MIDI_MODULES)
         for m in MODULES { on[m.id] = MidiShared.ids.contains(m.id) ? (shared[m.id] ?? true) : (saved[m.id] ?? m.defaultOn) }

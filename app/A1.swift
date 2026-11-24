@@ -123,7 +123,11 @@ struct A1View: View {
                 Small(text: e.modeWord == "COMMAND" ? "his command keys act" : "every key is free: " + e.modeWhy)
             }
             row("space", e.flag("space"), "Space", "stopped: Space · playing: ⇧Space" + (e.flag("follow") ? ", then ⌘⇧Space" : ""), "stopped: a plain Space, Live plays from the insert point wherever you put it (22.11.2026); playing: Continue Playback stops it", nil)
-            row("follow", e.flag("follow"), "after Space", "⌘⇧Space", "Move Insert Marker To Playhead: the insert point follows every stop", nil)
+            // v34: "follow" is the playback mode, Live's own behaviour after ANY stop, the same switch as the phone's
+            HStack(alignment: .center, spacing: 8) {
+                Text("after a stop").font(.system(size: 14, weight: .semibold, design: .monospaced)).foregroundColor(.white).frame(width: 110, alignment: .leading)
+                ModeSwitch()
+            }
             ForEach(Array(e.maps.enumerated()), id: \.offset) { i, m in
                 let via = (e.flag("viaMenu") || (m["noKey"] as? Bool) == true || m["act"] != nil) ? e.menuOf(m) : nil
                 let gets = via.map(a1PathWords) ?? (m["gets"] as? String) ?? a1Chord(mapMods(m, "tomods"), "\(m["to"] ?? "")")

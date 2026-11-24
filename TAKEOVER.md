@@ -269,3 +269,15 @@ click in Live, or after 60 s. STAR_LAUNCHER v6 posts it (source committed; it is
 
 ## v31, 22.11.2026: Space never moves the playhead (the fix and the audit)
 Every place that sets the song position or plants the insert point: (1) `spaceDecide` the plant after a STOP (Cmd+Shift+Space, only when he did not click: his rule a, kept); (2) `restoreTick` (put the insert point back at a start of Live, the "resume" feature, once at set open, never on Space); (3) `jumpToTransient` (his Up/Down arrows and Shift+I/O: deliberate commands); (4) `playLoopStart` (the old Space jump, now a command with no key); `sample()` writes the stopped position to the file beside the set only when it moved and `stopHold` keeps it from writing a stop position that is not his insert point; the file is read only at the start of a set (`restoreTick`), so it cannot feed an old position back during a session. Size of the timeline: nothing depends on it (positions are Double; OSC carries float32, whose step at 7200 beats is 1/2048 of a beat, about 0.25 ms at 120 BPM). The cause was the loop, not the length.
+
+## v34, 24.11.2026: PHONE REMOTE module, and the playback mode is "follow"
+
+- New module PHONE REMOTE (`app/RemoteModule.swift`, `RemoteLive.swift`, `RemoteServer.swift`, `RemotePeaks.swift`): the
+  server of the Android app Ableton Live Remote (Mantra) moved here from the retired "Ableton Live Remote (Mantra).app".
+  Port 8966 (HTTP + WebSocket; MANTRA_PORTS `ableton-live-remote`), Bonjour `_mantralive._tcp` (Info.plist now carries
+  NSLocalNetworkUsageDescription: macOS asks once to allow the local network), adb reverse 8966 and 15900 → 5900,
+  `/features` + order `c=feature&id=module:<id>|a1:<flag>&v=1|0`: the phone sees and switches the modules and A1's flags.
+  It asks Live only while a phone is connected (the shared turn, one combined question per look).
+- `PlaybackMode.swift`: the playback mode (`~/.config/mantra-live-playback-mode`, `return` | `continue`), acted on by the
+  watcher in AbletonOSC's Mantra patch after ANY stop. A1's "follow" flag reads and writes it (follow = continue); its
+  row in the A1 tab is now the two pictograms. The Space decision itself (Transport.swift) is unchanged.

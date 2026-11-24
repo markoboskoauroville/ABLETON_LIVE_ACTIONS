@@ -148,7 +148,8 @@ final class A1Engine: ObservableObject {
 
     // MARK: the settings
 
-    func flag(_ k: String) -> Bool { (conf[k] as? Bool) ?? true }
+    // "follow" is the playback mode since 24.11.2026 (PlaybackMode.swift): ONE switch for Live, this app and the phone
+    func flag(_ k: String) -> Bool { k == "follow" ? PlaybackMode.read() == "continue" : ((conf[k] as? Bool) ?? true) }
     func str(_ k: String, _ d: String) -> String { (conf[k] as? String) ?? d }
     func intConf(_ k: String, _ d: Int) -> Int { (conf[k] as? NSNumber)?.intValue ?? d }
     var maps: [[String: Any]] { get { (conf["maps"] as? [[String: Any]]) ?? [] } set { conf["maps"] = newValue } }
@@ -1200,6 +1201,11 @@ final class A1Engine: ObservableObject {
     // MARK: the page's switches (the Lua's set(what, on))
 
     func setFlag(_ what: String, _ v: Bool) {
+        if what == "follow" {                                  // the playback mode (PlaybackMode.swift), not a private flag
+            PlaybackMode.write(v ? "continue" : "return"); objectWillChange.send()
+            say(v ? "after a stop: CONTINUE (the insert point follows)" : "after a stop: RETURN (back to the insert point)")
+            return
+        }
         if A1_FLAGS.contains(what) {
             conf[what] = v; save()
             if what == "blob" { if v { if liveApp() != nil { timeBlob.show() } } else { timeBlob.hide() } }

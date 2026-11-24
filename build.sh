@@ -30,6 +30,8 @@ cat > "$APP/Contents/Info.plist" <<PL
 <key>CFBundleVersion</key><string>$V</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>NSLocalNetworkUsageDescription</key><string>Ableton Live Remote on your phone reaches this Mac over the home Wi-Fi (the PHONE REMOTE module).</string>
+<key>NSBonjourServices</key><array><string>_mantralive._tcp</string></array>
 </dict></plist>
 PL
 rm -rf "$APP/Contents/Resources/helpers"; cp -R helpers "$APP/Contents/Resources/helpers"; rm -rf "$APP/Contents/Resources/helpers/__pycache__"   # the Python helpers travel inside the app
