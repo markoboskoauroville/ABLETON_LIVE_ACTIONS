@@ -38,7 +38,8 @@ struct RemoteSnapshot: Equatable {
     var end = 0.0
     var tracks: [RemoteTrack] = []
     var insert = 0.0           // Live's insert point (Song.start_time): where Play and Space start
-    var mode = "return"        // the playback mode after a stop: "return" (DAW) or "continue" (DaVinci Resolve)
+    var mode = "return"
+    var paused = false         // PAUSE (24.11.2026): stopped by the phone's PAUSE, the next Play continues from here        // the playback mode after a stop: "return" (DAW) or "continue" (DaVinci Resolve)
 }
 
 /// An audio clip on the Arrangement timeline, read by /live/mantra/remote/clips.
@@ -168,6 +169,7 @@ final class RemoteLive {
         if r.count >= tail + 2 + count {                     // and then one identity per track (24.11.2026)
             for i in 0..<count { if let u = r[tail + 2 + i] as? String { s.tracks[i].uid = u } }
         }
+        if r.count >= tail + 3 + count { s.paused = (r[tail + 2 + count] as? Int ?? 0) != 0 }
         return s
     }
 
@@ -207,10 +209,12 @@ final class RemoteLive {
         var sent = true
         switch q["c"] ?? "" {
         case "play":
-            if !s.playing { tell("/live/song/start_playing") }
+            // v36: AbletonOSC decides: paused → continue from the paused place; stopped → Live's Play (the insert point)
+            if !s.playing { tell("/live/mantra/play") }
+        case "pause":
+            tell("/live/mantra/pause")
         case "stop":
-            tell("/live/song/stop_playing")
-            if s.rec { tell("/live/song/set/record_mode", [false]) }
+            tell("/live/mantra/stop")                         // the mode's stop, also from a pause; the record button off
         case "rec":
             let on = v ?? !s.rec
             tell("/live/song/set/record_mode", [on])
@@ -291,6 +295,6 @@ final class RemoteLive {
         func f(_ x: Double) -> Double { x.isFinite ? x : 0 }
         return ["v": rev, "live": answering, "playing": s.playing, "time": f(s.time), "tempo": f(s.tempo), "metro": s.metro,
                 "loop": s.loop, "loopStart": f(s.loopStart), "loopLen": f(s.loopLen), "rec": s.rec, "sigN": s.sigN,
-                "sigD": s.sigD, "end": f(s.end), "noInput": noInput, "insert": f(s.insert), "mode": s.mode, "tracks": s.tracks.map { $0.json }]
+                "sigD": s.sigD, "end": f(s.end), "noInput": noInput, "insert": f(s.insert), "mode": s.mode, "paused": s.paused, "tracks": s.tracks.map { $0.json }]
     }
 }

@@ -1,5 +1,5 @@
 diff --git a/abletonosc/application.py b/abletonosc/application.py
-index 6c058f6..3650d50 100644
+index 6c058f6..5dfb0d0 100644
 --- a/abletonosc/application.py
 +++ b/abletonosc/application.py
 @@ -1,4 +1,5 @@
@@ -8,7 +8,7 @@ index 6c058f6..3650d50 100644
  from typing import Tuple
  from .handler import AbletonOSCHandler
  
-@@ -18,3 +19,401 @@ class ApplicationHandler(AbletonOSCHandler):
+@@ -18,3 +19,459 @@ class ApplicationHandler(AbletonOSCHandler):
              return application.average_process_usage,
          self.osc_server.add_handler("/live/application/get/average_process_usage", get_average_process_usage)
          self.osc_server.send("/live/application/get/average_process_usage")
@@ -311,6 +311,7 @@ index 6c058f6..3650d50 100644
 +            out += [float(song.start_time), read_mode_early()]
 +            # then one stable identity per track (Live's object pointer: the same through renames and moves)
 +            out += [str(getattr(t, "_live_ptr", id(t))) for t in song.tracks]
++            out += [int(bool(getattr(self.manager, "_mantra_paused", False)))]   # then: paused (24.11.2026)
 +            return tuple(out)
 +        self.osc_server.add_handler("/live/mantra/remote/state", remote_state)
 +
@@ -342,7 +343,9 @@ index 6c058f6..3650d50 100644
 +        #   (Ableton Live Remote, 24.11.2026: "every time I click play, it plays from the beginning")
 +        def remote_start_time(params) -> Tuple:
 +            song = Live.Application.get_application().get_document()
-+            if params: song.start_time = max(0.0, float(params[0]))
++            if params:
++                song.start_time = max(0.0, float(params[0]))
++                self.manager._mantra_paused = False          # a new insert point ends a pause (the next Play starts there)
 +            return (float(song.start_time),)
 +        self.osc_server.add_handler("/live/mantra/start_time", remote_start_time)
 +
@@ -391,7 +394,11 @@ index 6c058f6..3650d50 100644
 +                watch["checked"] += 1
 +                if watch["checked"] % 10 == 0:
 +                    watch["mode"] = read_mode()               # once a second: the switch may have been turned elsewhere
-+                if watch["was"] and not playing:
++                if playing and getattr(manager, "_mantra_paused", False):
++                    manager._mantra_paused = False            # it plays again (Space, a button, the phone): no pause
++                if watch["was"] and not playing and getattr(manager, "_mantra_paused", False):
++                    pass                                      # a PAUSE: the playhead stays exactly where it stopped
++                elif watch["was"] and not playing:
 +                    mode = read_mode()
 +                    watch["mode"] = mode
 +                    if mode == "continue":
@@ -410,3 +417,54 @@ index 6c058f6..3650d50 100644
 +            song = Live.Application.get_application().get_document()
 +            return tuple(str(getattr(t, "_live_ptr", id(t))) for t in song.tracks)
 +        self.osc_server.add_handler("/live/mantra/remote/track_ids", remote_track_ids)
++
++        #--------------------------------------------------------------------------------
++        # PAUSE (Marko, 24.11.2026: "when I press pause, the track pauses ... and when I press play, it starts from that
++        # position in any of the modes"). The paused state lives here, so every phone and the Assistant agree.
++        #   /live/mantra/pause    playing: stop exactly here and stay (the watcher leaves a pause alone; a take being
++        #                         recorded ends, the record button off); paused: go on (as /live/mantra/play)
++        #   /live/mantra/play     paused: continue from the paused place; else Live's Play (from the insert point)
++        #   /live/mantra/stop     playing: Live's Stop (the watcher applies the mode); paused: the mode's stop now
++        #                         (return: the playhead to the insert point; continue: the insert point to the paused place)
++        #   every one answers (paused, playing)
++        #--------------------------------------------------------------------------------
++        manager._mantra_paused = getattr(manager, "_mantra_paused", False)
++
++        def pb_answer():
++            song = Live.Application.get_application().get_document()
++            return (int(bool(getattr(manager, "_mantra_paused", False))), int(song.is_playing))
++
++        def pb_play(_=None) -> Tuple:
++            song = Live.Application.get_application().get_document()
++            if getattr(manager, "_mantra_paused", False):
++                manager._mantra_paused = False
++                song.continue_playing()
++            elif not song.is_playing:
++                song.start_playing()
++            return pb_answer()
++        self.osc_server.add_handler("/live/mantra/play", pb_play)
++
++        def pb_pause(_) -> Tuple:
++            song = Live.Application.get_application().get_document()
++            if song.is_playing:
++                manager._mantra_paused = True
++                if song.record_mode: song.record_mode = False
++                song.stop_playing()
++            elif getattr(manager, "_mantra_paused", False):
++                return pb_play()
++            return pb_answer()
++        self.osc_server.add_handler("/live/mantra/pause", pb_pause)
++
++        def pb_stop(_) -> Tuple:
++            song = Live.Application.get_application().get_document()
++            if getattr(manager, "_mantra_paused", False) and not song.is_playing:
++                manager._mantra_paused = False
++                if read_mode() == "continue": song.start_time = float(song.current_song_time)
++                else: song.current_song_time = float(song.start_time)
++            else:
++                manager._mantra_paused = False
++                song.stop_playing()
++            if song.record_mode: song.record_mode = False
++            return pb_answer()
++        self.osc_server.add_handler("/live/mantra/stop", pb_stop)
++        self.osc_server.add_handler("/live/mantra/paused", lambda _: pb_answer())
