@@ -108,3 +108,11 @@ apps, and when unsure let the key through: a command that does not fire is small
 AbletonOSC moved to UDP 11010 (listen) / 11011 (reply) on 23.11.2026; Suno Bridge owns 11000. The shared/MackieIO.swift copy (MANTRA_MIDI_MODULES) still has the old 11000 for its Log.txt probe until that repo is updated.
 
 - v33: shared/ moved to a4bb302, the Mackie probe now uses AbletonOSC 11010 (23.11.2026)
+
+## 24.11.2026 (v34 to v36): PHONE REMOTE
+- AbletonOSC replies to the LAST sender only, so a phone must never talk to it directly: only the Assistant's turn on 11011 does, and serves the phone on 8966 (Bonjour _mantralive._tcp, adb reverse, 15900 to 5900 reverse).
+- Live's Play starts from Song.start_time (the insert point), not current_song_time. The playback mode (return | continue) lives in ~/.config/mantra-live-playback-mode, read by a 100 ms watcher in AbletonOSC; A1's "follow" and the playback mode are one switch.
+- The phone works only while the Assistant runs (it does not start at login). Two polling loops still run inside it (not merged).
+- v34's release was deleted by mistake by a worker (tag and source remain): this repo keeps its history of releases, so check the repo's own release convention before deleting any.
+- A phone dropped at the first failed send (v35): a killed app no longer counts as connected.
+- A kill command that missed the process by name left the old process running: verify every kill with pgrep.

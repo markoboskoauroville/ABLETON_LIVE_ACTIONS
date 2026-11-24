@@ -281,3 +281,6 @@ Every place that sets the song position or plants the insert point: (1) `spaceDe
 - `PlaybackMode.swift`: the playback mode (`~/.config/mantra-live-playback-mode`, `return` | `continue`), acted on by the
   watcher in AbletonOSC's Mantra patch after ANY stop. A1's "follow" flag reads and writes it (follow = continue); its
   row in the A1 tab is now the two pictograms. The Space decision itself (Transport.swift) is unchanged.
+
+## State at the close of 24.11.2026 (v36)
+PHONE REMOTE tab serves Ableton Live Remote (Mantra) on 8966 (v34); AbletonOSC handlers /live/mantra/remote/state, /remote/clips, /remote/track_ids, /start_time, /playback_mode, /play, /pause, /stop, /paused (patch backup in abletonosc/). v35 phones dropped at the first failed send; v36 PAUSE. Open: allow Local Network for the Assistant if macOS asks; two polling loops not merged; v34 release missing (tag remains).
