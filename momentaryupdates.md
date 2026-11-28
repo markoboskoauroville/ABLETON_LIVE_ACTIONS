@@ -265,4 +265,4 @@ Marko, about Ableton Live Remote (Mantra) (word for word in ABLETON_LIVE_REMOTE/
 
 > Please go and test all my custom shortcuts for Ableton Live with Ableton Live Assistant and let me know why they don't work. What was the issue, and fix the bugs?
 
-**Status:** saved first; testing and fixing (v37).
+**Status:** v37 built by GitHub (run 46095799181, green), installed 28.11.2026 02:01 and re-tested in Live with the STRESS TEST copy: every row works (Space, ⌥Space, 2/3 zoom, ⇧1/⇧2, H, ⌘F, F2-F4, 7/8/9, arrows, ⌘ and ⌥ arrows, I/O, ⇧I/⇧O, L). Causes in TAKEOVER v37.

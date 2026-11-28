@@ -116,3 +116,18 @@ AbletonOSC moved to UDP 11010 (listen) / 11011 (reply) on 23.11.2026; Suno Bridg
 - v34's release was deleted by mistake by a worker (tag and source remain): this repo keeps its history of releases, so check the repo's own release convention before deleting any.
 - A phone dropped at the first failed send (v35): a killed app no longer counts as connected.
 - A kill command that missed the process by name left the old process running: verify every kill with pgrep.
+
+## 28.11.2026 (v37): a lookup by key code is not a match
+- **A captured chord on a key that has built-in handling must not shadow it.** `byCode[code]` found his ⌥Space map, no map matched a
+  plain Space, and the branch returned the key to Live before the Space logic ran: four days of Space without stop-and-plant. A chord
+  is his only when code AND modifiers match; everything else falls through as if no map were there. The routing is a pure function
+  with a test for "an override puts a second chord on Space's key code" and a mutation that must fail.
+- **Read every OSC number as a number, whatever its type tag.** `as? Double` is nil for an OSC integer: selected_track was never read
+  and ⌥↓ dragged track 1. One helper (oscDouble) for every answer.
+- **A shortcut that only posts a key must be proven in Live**: ⌥keypad± does nothing in Live, ⌥−/⌥= on the main keys do. Continue
+  Playback starts at the last stop, not at a playhead set by OSC: an OSC order (start_time + start_playing) is exact.
+- **A test of an app that posts its own keys must not run under an input lock that swallows them**: Macro Recorder's lock ate A1's
+  Space / ⇧Space / ⌥− and replayed them into Marko's front app. Use the lock's /through window while the app posts. `Send "3"` in
+  Macro Recorder types text with key code 0: use `{3 down}{3 up}` for a real key.
+- **"Dialog" by subrole misses Live's Settings** (a standard main window): name the known utility windows; probe each window kind of
+  the real app (main, second window, plug-in, Settings, Export, rename) before writing the rule.

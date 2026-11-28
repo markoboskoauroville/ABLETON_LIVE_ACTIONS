@@ -284,3 +284,59 @@ Every place that sets the song position or plants the insert point: (1) `spaceDe
 
 ## State at the close of 24.11.2026 (v36)
 PHONE REMOTE tab serves Ableton Live Remote (Mantra) on 8966 (v34); AbletonOSC handlers /live/mantra/remote/state, /remote/clips, /remote/track_ids, /start_time, /playback_mode, /play, /pause, /stop, /paused (patch backup in abletonosc/). v35 phones dropped at the first failed send; v36 PAUSE. Open: allow Local Network for the Assistant if macOS asks; two polling loops not merged; v34 release missing (tag remains).
+
+## v37, 28.11.2026: every custom shortcut tested in Live, five causes fixed
+
+Marko (momentaryupdates.md, 28.11.2026): "Please go and test all my custom shortcuts ... let me know why they don't work. What was the
+issue, and fix the bugs?" His overrides (~/.config/ableton-assistant-shortcuts.json, untouched, byte-identical before and after):
+row "1" zoom out on key 2, row "2" zoom in on key 3, "loopstart" (play from the loop's start) on ⌥Space.
+
+**Tested how:** Live 12.4.7 with the copy "STRESS TEST 24.11.2026.als" (25 tracks, all muted by OSC, metronome off; quit with
+Don't Save, the .als untouched), keys as real key events by Macro Recorder (`Send "{3 down}{3 up}"`: a bare `Send "3"` types text
+with key code 0 and never reaches A1), Live fronted by WinActivate plus a click, every key read back: app.log "key X: command",
+Live's state by AbletonOSC (is_playing, current_song_time, Song.start_time, loop, cue points, selected track, track order, clip
+count), View/Edit menu ticks by Accessibility, zoom and track height by window captures compared pixel by pixel.
+**Test trap:** while Macro Recorder's input lock is held it swallows every key that is not its own, so A1's OWN posted keys (Space,
+⇧Space, ⌥−) never reached Live and were replayed into Marko's front app when the lock lifted (spaces and −/+ went into Firefox,
+DaVinci Resolve and iTerm2 on 28.11). Test A1's posted keys with `POST 127.0.0.1:8829/through {"ms":2500}` inside the guard.
+
+**The causes (v36):**
+1. **Space dead since ⌥Space was captured** (A1Engine.filter): `if let maps = byCode[code] { for m in maps where same(...) ...; return pass }`
+   returned every key whose CODE had a map to Live when no map matched its modifiers. ⌥Space put a map on Space's code, so a plain
+   Space went straight to Live: no stop-and-plant, no play from the insert point (app.log 24-28.11: 43 "key Space: command", 0 Space
+   decisions, "0 space bars swapped"). Fix: `KeyRoute.route` (app/KeyRoute.swift, pure, tests/keyroute_test.swift + a mutation in the
+   workflow): a map wins only when code AND modifiers match, else the key falls through to its built-in handling (Space, ⌘R rename,
+   Return/Escape/Tab). A captured ⌘R or ⌥Return now works too; keyUps follow their keyDown through `held` for Space as for maps.
+2. **⌘↓ / ⌘↑ and ⌥↓ / ⌥↑ used no reading of the selected track**: AbletonOSC sends selected_track, num_tracks and
+   signature_numerator as integers; A1 read them `as? Double` (nil for an Int). ⌘↓ walked from a stale index (from 23 it went to 3);
+   ⌥↓ dragged TRACK 1 whatever was selected ("track 1 moved down" with track 24 selected). Fix: `oscDouble` everywhere; move-track
+   asks Live at the press and moves nothing when it is not known.
+3. **⇧1 / ⇧2 (track height) did nothing**: they posted ⌥keypad−/+, which Live ignores; ⌥− / ⌥= on the main keys change the
+   selected track's height (proven with Macro Recorder). The maps now send those; posted keypad keys also carry the numeric-pad flag.
+4. **⌥Space (play from the loop's start) never played**: it set the playhead and posted ⇧Space; Continue Playback starts where Live
+   last stopped, not at a playhead set by OSC (measured with A1 off: played from 0:06 with the playhead at 2:28). Now by OSC:
+   stopped, `/live/mantra/start_time` = loop start then `/live/song/start_playing`; playing, the playhead jumps there.
+5. **Keys were commands inside Live's Settings**: Settings is an AXStandardWindow with AXMain true, so v36 did not see a dialog
+   (an h in Settings split a clip). `KeyMode.windowIsDialog` (tested): Settings / Preferences by title, any non-standard subrole,
+   a non-main window; a plug-in window (AXFloatingWindow titled "<device>/<track>") is part of his work: commands stay.
+
+**Suspicion "a plug-in window kills the shortcuts": disproven for FabFilter Pro-Q 3.** AX readings (focused element, its window,
+subrole, AXMain, v36's verdict): (a) only the main window: AXStaticText in "STRESS TEST", standard, main: command. (b) plug-in open,
+arrangement clicked: the main window, command (Live hid the plug-in window on that click). (c) plug-in window clicked (title bar and
+body): Live's focused WINDOW is the plug-in (AXFloatingWindow) but its focused ELEMENT stays in the main window: command, F3 toggled
+the mixer. (d) second window open (title "", AXStandardWindow, main when focused) and main clicked: command. (e) Settings: AXRadioButton
+in "Settings", standard, main: v36 command (bug 5); Export Audio/Video is an AXDialog: free. (f) clip rename (⌘R): Live reports
+AXStaticText, no text role: only A1's typing flag frees the keys (h after ⌘R: "free: typing began"). The 28.11 01:15 run of "a dialog
+or another window has the keys" (h, o, l, Space) came after clicks whose hit-test was "AXWindow, above it Live" (a window with no
+Accessibility inside: a plug-in's own view) and Live's menu bar, in an Untitled set: a window with a non-standard subrole or AXMain
+false held Live's focused element. Not reproduced; v37 keeps any plug-in window (floating, "<device>/<track>") as commands.
+
+**Also seen, not changed:** ⌘F with the browser hidden opens Live's search and Live keeps the keyboard in that search field even
+after a click on the title bar: every key is then typed into the search (correct by his rule) until he clicks in the arrangement.
+A click on a clip while playing counts (AXStaticText under Arrangement) and the Space stops without planting, but Live's playback
+mode "continue" (AbletonOSC watcher) then sets Song.start_time to the stop position anyway (start_time 176.8 after the stop): the
+v23 rule (his click while playing is kept) and the v34 playback mode disagree; his decision. His own 28.11 clicks were "AXGroup under
+Arrangement" (empty lane), which v24 does not count.
+
+Installed 28.11.2026 02:01 (AX quit of v36, ditto, codesign "Mantra Apps", `open -g`: "v37 started", "key tap installed",
+"[Updater] v37 is the newest"). Run 46095799181 green (keyroute_test 32 passed and its mutation failed as it must, keymode_test 28).
