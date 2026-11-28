@@ -260,3 +260,9 @@ minimum width 640 (nothing cut), TOP pressed through Accessibility twice (layer 
 ## 24.11.2026: the phone remote under this roof (v34)
 
 Marko, about Ableton Live Remote (Mantra) (word for word in ABLETON_LIVE_REMOTE/momentaryupdates.md, request 3): "... in Ableton Live Assistant we have code for this. You can take a code from Ableton Live Assistant and use this remote control to control Ableton Live Assistant. Ableton Live Assistant should be also running at the same time when this helper app is running. In that case, helper app is unnecessary because it can become part of Ableton Live Assistant to be a helper for remote controller. Then everything we have under one roof and that's the goal, to have everything under one roof. In that sense, they can work together. So, helper app can disable, enable things in Ableton Live Assistant. So, we make one ecosystem, Mantra Ableton Live System."
+
+## 28.11.2026: test every custom shortcut (via the master session)
+
+> Please go and test all my custom shortcuts for Ableton Live with Ableton Live Assistant and let me know why they don't work. What was the issue, and fix the bugs?
+
+**Status:** saved first; testing and fixing (v37).
