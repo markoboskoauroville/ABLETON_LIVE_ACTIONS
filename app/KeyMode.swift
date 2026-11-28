@@ -43,6 +43,20 @@ enum KeyMode {
         if focus.editable { return .free("a field that takes text has the focus") }
         return .command
     }
+    /// Is the window that holds the focus a dialog (keys free) or part of his work (keys are commands)? Measured in Live 12.4.7,
+    /// 28.11.2026: Export Audio/Video is an AXDialog (free, v36 already); Settings is an AXStandardWindow with AXMain true, so v36
+    /// took its keys as commands (an h in Settings split a clip): free now, by its title; the set's window and the second window
+    /// (title "") are standard windows (commands); a plug-in window is an AXFloatingWindow titled "<device>/<track>": part of his
+    /// work, his keys stay commands there (a text role inside it is still free by the role rule).
+    static let dialogTitles: Set<String> = ["Settings", "Preferences"]
+    static func windowIsDialog(subrole: String?, main: Bool?, title: String?) -> Bool {
+        let t = title ?? ""
+        if subrole == "AXFloatingWindow" && t.contains("/") { return false }
+        if let s = subrole, s != "AXStandardWindow" { return true }
+        if dialogTitles.contains(t) { return true }
+        if main == false { return true }
+        return false
+    }
     static func word(_ d: KeyDecision) -> String { d == .command ? "COMMAND" : "TYPING" }
     static func why(_ d: KeyDecision) -> String { if case .free(let w) = d { return w }; return "Live's arrangement has the keys" }
 }

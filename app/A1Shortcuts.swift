@@ -131,9 +131,17 @@ extension A1Engine {
         let (pair, _) = braceOf()
         guard let p = pair else { say("play from the loop start: no loop is set"); return }
         wire.tell("/live/song/set/loop", [true]); liveLoop.on = true
-        wire.tell("/live/song/set/current_song_time", [p.a])
-        say("play from the loop's start " + clock(p.a)); AppLog.write("play-loop-start: the playhead to \(clock(p.a))")
-        if !playing { DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { self.post(["shift"], "space") } }
+        // v37: by AbletonOSC, not by a keystroke. Until v36 a stopped Live got ⇧Space (Continue Playback), which starts where Live
+        // last STOPPED, not at the playhead just set (measured 28.11.2026: Continue played from 0:06 with the playhead set to 2:28),
+        // and the posted key did not start Live at all in the test. Stopped: Live's start (Song.start_time) to the loop's start,
+        // then Play; playing: the playhead jumps there.
+        wire.ask("/live/song/get/is_playing", wait: 0.4) { a, _ in
+            let isPlaying = (a?.first as? Bool) ?? oscDouble(a?.first).map { $0 != 0 } ?? self.playing
+            if isPlaying { self.wire.tell("/live/song/set/current_song_time", [p.a]) }
+            else { self.wire.tell("/live/mantra/start_time", [p.a]); self.wire.tell("/live/song/start_playing") }
+            self.say("play from the loop's start " + self.clock(p.a))
+            AppLog.write("play-loop-start: \(isPlaying ? "playing, the playhead" : "stopped, Live's start and Play") to \(self.clock(p.a))")
+        }
     }
 
     // I AND O (v28)
@@ -170,7 +178,7 @@ extension A1Engine {
         }
         if wire.isPending("/live/song/get/current_song_time") { fallback(); return }
         wire.ask("/live/song/get/current_song_time", wait: 1.0) { a, _ in
-            if let b = a?.first as? Double { finish(b, a1Time() - tPress, "read from Live at the press") } else { fallback() }
+            if let b = oscDouble(a?.first) { finish(b, a1Time() - tPress, "read from Live at the press") } else { fallback() }
         }
     }
 }

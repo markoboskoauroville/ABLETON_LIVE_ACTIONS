@@ -129,7 +129,7 @@ enum OSC {
         var out: [Cue] = []
         var i = 0
         while i + 1 < args.count {
-            if let t = args[i + 1] as? Double { out.append(Cue(index: i / 2, name: "\(args[i])", time: t, key: key(t))) }
+            if let t = oscDouble(args[i + 1]) { out.append(Cue(index: i / 2, name: "\(args[i])", time: t, key: key(t))) }
             i += 2
         }
         return out.sorted { $0.time < $1.time }

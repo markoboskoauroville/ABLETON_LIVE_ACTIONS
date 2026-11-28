@@ -26,6 +26,8 @@ need app/A1Shortcuts.swift 'com.mantra.launcher.box'
 need app/Main.swift 'WindowGroup(APP_NAME)'
 need app/Updater.swift 'static let repo = "markoboskoauroville/ABLETON_LIVE_ACTIONS"'
 need .github/workflows/build.yml 'APP: "Ableton Live Assistant (Mantra)"'
+need app/A1Engine.swift 'KeyRoute.route('
+need app/A1Engine.swift 'KeyMode.windowIsDialog('
 # one title only: the guard of MANTRA_ROOM's check_one_title.sh, adapted to this app
 need app/Common.swift 'func enforceOneTitle()'
 need app/Common.swift 'w.titleVisibility = .hidden'

@@ -57,6 +57,16 @@ jobs:
           cp tests/shortcuts_test.swift "$RUNNER_TEMP/scm/main.swift"
           swiftc -o "$RUNNER_TEMP/scm_test" "$RUNNER_TEMP/scm/Shortcuts.swift" "$RUNNER_TEMP/scm/KeyMode.swift" "$RUNNER_TEMP/scm/main.swift"
           if "$RUNNER_TEMP/scm_test" >/dev/null; then echo "BAD: the shortcut tests did not catch a key that is never found"; exit 1; else echo "GOOD: the shortcut tests failed when keys are never found"; fi
+      - name: Which branch handles a key (KeyRoute), and the mutation that must fail (v37)
+        run: |
+          mkdir -p "$RUNNER_TEMP/kr" && cp app/KeyRoute.swift "$RUNNER_TEMP/kr/KeyRoute.swift" && cp tests/keyroute_test.swift "$RUNNER_TEMP/kr/main.swift"
+          swiftc -o "$RUNNER_TEMP/kr_test" "$RUNNER_TEMP/kr/KeyRoute.swift" "$RUNNER_TEMP/kr/main.swift" && "$RUNNER_TEMP/kr_test"
+          # the v36 bug back: any map on the key code swallows the key's built-in handling (his ⌥Space shadows Space)
+          mkdir -p "$RUNNER_TEMP/krm" && sed 's/        if isR \&\& held == \["cmd"\] { return .rename }/        if !mapMods.isEmpty { return .liveOwn }; if isR \&\& held == ["cmd"] { return .rename }/' app/KeyRoute.swift > "$RUNNER_TEMP/krm/KeyRoute.swift"
+          cmp -s app/KeyRoute.swift "$RUNNER_TEMP/krm/KeyRoute.swift" && { echo "the mutation did not apply"; exit 1; }
+          cp tests/keyroute_test.swift "$RUNNER_TEMP/krm/main.swift"
+          swiftc -o "$RUNNER_TEMP/krm_test" "$RUNNER_TEMP/krm/KeyRoute.swift" "$RUNNER_TEMP/krm/main.swift"
+          if "$RUNNER_TEMP/krm_test" >/dev/null; then echo "BAD: the tests did not catch a map shadowing Space"; exit 1; else echo "GOOD: the tests failed when a map shadows Space"; fi
       - name: Pins (name, bundle id, settings files, one title, no app OFF)
         run: bash tests/pins.sh
       - name: The pins hold (mutation) - stopped goes back to Continue Playback, the test MUST fail

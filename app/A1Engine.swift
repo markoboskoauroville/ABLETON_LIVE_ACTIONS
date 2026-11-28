@@ -18,8 +18,8 @@ let A1_POSTED: Int64 = 0xA1A1                      // our own keystrokes carry t
 let A1_DEFAULT_MAPS: [[String: Any]] = [
     ["from": "1", "mods": [String](), "to": "-", "tomods": [String](), "blob": "zoom out", "does": "Zoom Out on the time ruler (Live's -)", "was": "nothing in Live's Arrangement"],
     ["from": "2", "mods": [String](), "to": "pad+", "tomods": [String](), "blob": "zoom in", "does": "Zoom In on the time ruler (Live's +)", "was": "nothing in Live's Arrangement"],
-    ["from": "1", "mods": ["shift"], "to": "pad-", "tomods": ["alt"], "blob": "track lower", "does": "Lower the selected track (Live's Option−)", "was": "Shift+1: nothing in the Arrangement (Option+Shift+1 is the Sample tab)"],
-    ["from": "2", "mods": ["shift"], "to": "pad+", "tomods": ["alt"], "blob": "track higher", "does": "Raise the selected track (Live's Option+)", "was": "Shift+2: nothing in the Arrangement (Option+Shift+2 is the Envelopes tab)"],
+    ["from": "1", "mods": ["shift"], "to": "-", "tomods": ["alt"], "blob": "track lower", "does": "Lower the selected track (Live's Option−; v37: the main − key, Live ignores the keypad's)", "was": "Shift+1: nothing in the Arrangement (Option+Shift+1 is the Sample tab)"],
+    ["from": "2", "mods": ["shift"], "to": "=", "tomods": ["alt"], "blob": "track higher", "does": "Raise the selected track (Live's Option+; v37: the main = key, Live ignores the keypad's)", "was": "Shift+2: nothing in the Arrangement (Option+Shift+2 is the Envelopes tab)"],
     ["from": "h", "mods": [String](), "to": "e", "tomods": ["cmd"], "blob": "split", "does": "Split at the selection (Live's ⌘E)", "was": "H: Optimize Arrangement Height (fit all tracks to the window)"],
     ["from": "f", "mods": ["cmd"], "to": "5", "tomods": ["cmd", "alt"], "only": "Browser", "types": true, "blob": "browser closed",
      "does": "With the browser shown: close it (Live's ⌘⌥5). With it hidden, ⌘F is Live's own: the browser opens on its search", "was": "⌘F: Search in Browser (still, when the browser is hidden)"],
@@ -408,6 +408,7 @@ final class A1Engine: ObservableObject {
         for down in [true, false] {
             let e = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(code), keyDown: down)
             e?.flags = a1Flags(mods); e?.setIntegerValueField(.eventSourceUserData, value: A1_POSTED)
+            if key.hasPrefix("pad") { e?.flags.insert(.maskNumericPad) }      // a keypad key says so, as the real keyboard does
             e?.post(tap: .cghidEventTap)
         }
     }
@@ -443,90 +444,93 @@ final class A1Engine: ObservableObject {
         let isSpace = code == A1KEY["space"]!
         let f = e.flags
         let down = type == .keyDown
+        if !down && held.remove(code) != nil { return nil }              // the keyUp goes the way its keyDown went (v37: for Space too)
         let ends = [A1KEY["return"]!, A1KEY["padenter"]!, A1KEY["escape"]!, A1KEY["tab"]!].contains(code)
         if down && (f.contains(.maskCommand) || f.contains(.maskControl)) { focusCache = nil }   // a launcher or a search may open on this key: read the focus afresh
-        let isR = code == A1KEY["r"]! && f.contains(.maskCommand) && !f.contains(.maskAlternate) && !f.contains(.maskControl) && !f.contains(.maskShift)
-        if maps == nil && !isSpace && !ends && !isR { return pass }
+        let isRKey = code == A1KEY["r"]!
+        if maps == nil && !isSpace && !ends && !isRKey { return pass }
+        guard down else { return pass }
         guard let front = NSWorkspace.shared.frontmostApplication, front.bundleIdentifier == BUNDLE else { return pass }
         let target = e.getIntegerValueField(.eventTargetUnixProcessID)
         if target > 0 && pid_t(target) != front.processIdentifier { return pass }
 
-        if ends { if down && typing { typing = false; say("typing ended") }; return pass }
+        // WHICH BRANCH (v37, KeyRoute.swift, tested): a map wins only when code AND modifiers match; otherwise the key falls through
+        // to its built-in handling. Until v36 any map on the code (his ⌥Space) returned the key to Live and Space was never decided.
+        var mods: [String] = []
+        if f.contains(.maskCommand) { mods.append("cmd") }; if f.contains(.maskAlternate) { mods.append("alt") }
+        if f.contains(.maskControl) { mods.append("ctrl") }; if f.contains(.maskShift) { mods.append("shift") }
+        let route = KeyRoute.route(isSpace: isSpace, isR: isRKey, isEnd: ends, mods: mods, fn: f.contains(.maskSecondaryFn),
+                                   mapMods: (maps ?? []).map { mapMods($0) }, spaceOn: flag("space"), typing: typing)
+        switch route {
+        case .liveOwn: return pass
+        case .end: if typing { typing = false; say("typing ended") }; return pass
+        default: break
+        }
         // COMMAND MODE OR TYPING (v27, 22.11.2026): his keys are commands only while the keyboard focus is Live's own and not a text entry
-        if down {
-            let noMods = !(f.contains(.maskCommand) || f.contains(.maskAlternate) || f.contains(.maskControl) || f.contains(.maskSecondaryFn))
-            let mapped = isR || (maps?.contains { same(f, mapMods($0)) } ?? false) || (isSpace && noMods && flag("space"))
-            if mapped {
-                let fr = currentFocus()
-                let d = KeyMode.decide(frontIsLive: true, focus: fr, typingFlag: typing, launcherBox: launcherBoxActive, isMappedKey: true)
-                modeWord = KeyMode.word(d); modeWhy = KeyMode.why(d)
-                let label = isSpace ? "Space" : (isR ? "⌘R" : ((maps?.first?["from"] as? String) ?? "\(code)"))
-                AppLog.write("key \(label): " + (d == .command ? "command" : "free: " + KeyMode.why(d)))
-                if case .free(let why) = d {
-                    note(label, "typing", "free: " + why)
-                    if isR && fr?.live == true && !typing && menuEnabled(["Edit", "Rename"]) != false { typing = true; say("typing: every key is yours") }   // Edit > Rename starts typing in Live
-                    return pass
-                }
-            }
+        let fr = currentFocus()
+        let d = KeyMode.decide(frontIsLive: true, focus: fr, typingFlag: typing, launcherBox: launcherBoxActive, isMappedKey: KeyRoute.isMapped(route))
+        modeWord = KeyMode.word(d); modeWhy = KeyMode.why(d)
+        var label = "Space"
+        if route == .rename { label = "⌘R" }
+        if case .map(let i) = route, let m = maps?[i] { label = a1Chord(mapMods(m), "\(m["from"] ?? "")") }
+        AppLog.write("key \(label): " + (d == .command ? "command" : "free: " + KeyMode.why(d)))
+        if case .free(let why) = d {
+            note(label, "typing", "free: " + why)
+            if route == .rename && fr?.live == true && !typing && menuEnabled(["Edit", "Rename"]) != false { typing = true; say("typing: every key is yours") }   // Edit > Rename starts typing in Live
+            return pass
         }
 
-        if isR {                                       // Edit › Rename: he types a name until Return, Escape or a click
-            if down && menuEnabled(["Edit", "Rename"]) != false { typing = true; note("⌘R", "Rename", "typing begins"); say("typing: every key is yours") }
+        if route == .rename {                          // Edit › Rename: he types a name until Return, Escape or a click
+            if menuEnabled(["Edit", "Rename"]) != false { typing = true; note("⌘R", "Rename", "typing begins"); say("typing: every key is yours") }
             return pass
         }
-        if let maps = maps {
-            if !down { if held.remove(code) != nil { return nil }; return pass }   // the keyUp goes the way its keyDown went
-            for m in maps where same(f, mapMods(m)) {
-                let ch = a1Chord(mapMods(m), "\(m["from"] ?? "")")
-                if let only = m["only"] as? String, !viewTicked(only) {      // not the moment: the key is Live's own
-                    if (m["types"] as? Bool) == true { typing = true; note(ch, only + " hidden", "Live's own; typing begins"); say("search: typing, every key is yours") }
-                    return pass
-                }
-                if typing { note(ch, "typing (after ⌘R or ⌘F)", "typed, Live's own"); return pass }
-                let (role, sub, editable) = focusRole()
-                if editable { note(ch, (role ?? "?") + (sub.map { "/" + $0 } ?? ""), "a field: typed, Live's own"); return pass }
-                held.insert(code)
-                let actName = m["act"] as? String
-                note(ch, role ?? "nothing", actName.map { "A1 itself: " + $0 } ?? "mapping")
-                if let a = actName {
-                    DispatchQueue.main.async {
-                        switch a {
-                        case "in", "out": self.markLoop(a)
-                        case "in-now": self.markNow("in")
-                        case "play-loop-start": self.playLoopStart()
-                        case "out-now": self.markNow("out")
-                        case "in-transient": self.jumpToTransient("in")
-                        case "out-transient": self.jumpToTransient("out")
-                        case "locator": self.locator()
-                        case "prev-marker": self.jumpCue(back: true)
-                        case "next-marker": self.jumpCue(back: false)
-                        case "next-transient": self.jumpToTransient(nil, "right")
-                        case "back-transient": self.jumpToTransient(nil, "left")
-                        case "next-track": self.selectTrack(1)
-                        case "back-track": self.selectTrack(-1)
-                        case "move-track-down": self.moveTrack(down: true)
-                        case "move-track-up": self.moveTrack(down: false)
-                        default: self.toggleLoop()
-                        }
-                        self.seen.did = (m["does"] as? String) ?? a
-                    }
-                } else {
-                    let tm = mapMods(m, "tomods"), to = (m["to"] as? String) ?? ""
-                    act(menuOf(m), tm, to, (m["does"] as? String) ?? a1Chord(tm, to), (m["noKey"] as? Bool) == true, (m["blob"] as? String) ?? (m["does"] as? String) ?? a1Chord(tm, to))
-                }
-                countKeys += 1
-                return nil                          // the pressed key itself never reaches Live
+        if case .map(let i) = route, let m = maps?[i] {
+            let ch = label
+            if let only = m["only"] as? String, !viewTicked(only) {      // not the moment: the key is Live's own
+                if (m["types"] as? Bool) == true { typing = true; note(ch, only + " hidden", "Live's own; typing begins"); say("search: typing, every key is yours") }
+                return pass
             }
-            return pass
+            if typing { note(ch, "typing (after ⌘R or ⌘F)", "typed, Live's own"); return pass }
+            let (role, sub, editable) = focusRole()
+            if editable { note(ch, (role ?? "?") + (sub.map { "/" + $0 } ?? ""), "a field: typed, Live's own"); return pass }
+            held.insert(code)
+            let actName = m["act"] as? String
+            note(ch, role ?? "nothing", actName.map { "A1 itself: " + $0 } ?? "mapping")
+            if let a = actName {
+                DispatchQueue.main.async {
+                    switch a {
+                    case "in", "out": self.markLoop(a)
+                    case "in-now": self.markNow("in")
+                    case "play-loop-start": self.playLoopStart()
+                    case "out-now": self.markNow("out")
+                    case "in-transient": self.jumpToTransient("in")
+                    case "out-transient": self.jumpToTransient("out")
+                    case "locator": self.locator()
+                    case "prev-marker": self.jumpCue(back: true)
+                    case "next-marker": self.jumpCue(back: false)
+                    case "next-transient": self.jumpToTransient(nil, "right")
+                    case "back-transient": self.jumpToTransient(nil, "left")
+                    case "next-track": self.selectTrack(1)
+                    case "back-track": self.selectTrack(-1)
+                    case "move-track-down": self.moveTrack(down: true)
+                    case "move-track-up": self.moveTrack(down: false)
+                    default: self.toggleLoop()
+                    }
+                    self.seen.did = (m["does"] as? String) ?? a
+                }
+            } else {
+                let tm = mapMods(m, "tomods"), to = (m["to"] as? String) ?? ""
+                act(menuOf(m), tm, to, (m["does"] as? String) ?? a1Chord(tm, to), (m["noKey"] as? Bool) == true, (m["blob"] as? String) ?? (m["does"] as? String) ?? a1Chord(tm, to))
+            }
+            countKeys += 1
+            return nil                          // the pressed key itself never reaches Live
         }
         // SPACE: playing, ⇧Space stops and ⌘⇧Space plants the insert point on the playhead; stopped, a plain Space plays from the insert point (spaceDecide, Transport.swift)
-        guard flag("space") else { return pass }
-        if f.contains(.maskCommand) || f.contains(.maskAlternate) || f.contains(.maskControl) || f.contains(.maskSecondaryFn) { return pass }
-        if typing { if down { note("Space", "typing (after ⌘R or ⌘F)", "typed, Live's own") }; return pass }
+        if typing { note("Space", "typing (after ⌘R or ⌘F)", "typed, Live's own"); return pass }
         let (role, sub, editable) = focusRole()
-        if editable { if down { note("Space", (role ?? "?") + (sub.map { "/" + $0 } ?? ""), "a field: typed, Live's own") }; return pass }
+        if editable { note("Space", (role ?? "?") + (sub.map { "/" + $0 } ?? ""), "a field: typed, Live's own"); return pass }
         if f.contains(.maskShift) { e.flags = []; return pass }      // Shift+Space goes on to Live as a plain Space: Play
-        if !down { return nil }
+        held.insert(code)
         countSpace += 1
         note("Space", role ?? "nothing", "Space: deciding from Live's own state")
         let (pair, whence) = braceOf()
@@ -556,9 +560,7 @@ final class A1Engine: ObservableObject {
         if ax(f, kAXValueAttribute) is String { AXUIElementIsAttributeSettable(f, kAXValueAttribute as CFString, &settable); r.editable = settable.boolValue }
         // a dialog, a sheet or a window of Live other than its main one
         if let w = axEl(f, kAXWindowAttribute) ?? axEl(a, kAXFocusedWindowAttribute) {
-            let sub = axString(w, kAXSubroleAttribute)
-            if let s = sub, s != "AXStandardWindow" { r.dialog = true }
-            if let m = ax(w, kAXMainAttribute) as? Bool, !m { r.dialog = true }
+            if KeyMode.windowIsDialog(subrole: axString(w, kAXSubroleAttribute), main: ax(w, kAXMainAttribute) as? Bool, title: axString(w, kAXTitleAttribute)) { r.dialog = true }
         }
         var up = axEl(f, kAXParentAttribute)
         for _ in 0..<8 { guard let u = up else { break }; if axString(u, kAXRoleAttribute) == "AXSheet" { r.dialog = true; break }; up = axEl(u, kAXParentAttribute) }
@@ -665,13 +667,13 @@ final class A1Engine: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 self.wire.ask("/live/song/get/is_playing", wait: 1.5) { a, _ in
                     if let p = a?.first as? Bool { self.setPlaying(p); self.say(p ? "playing" : (self.flag("follow") ? "stopped: the insert point follows" : "stopped")) }
-                    else if let p = a?.first as? Double { self.setPlaying(p != 0) }
+                    else if let p = oscDouble(a?.first) { self.setPlaying(p != 0) }
                 }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.sample() }
         }
         wire.ask("/live/song/get/is_playing", wait: 0.3) { a, _ in
-            if let p = a?.first as? Bool { go(p) } else if let p = a?.first as? Double { go(p != 0) } else { go(nil) }
+            if let p = a?.first as? Bool { go(p) } else if let p = oscDouble(a?.first) { go(p != 0) } else { go(nil) }
         }
     }
 
@@ -729,7 +731,7 @@ final class A1Engine: ObservableObject {
             return
         }
         wire.ask("/live/song/get/current_song_time") { a, why in
-            guard let beats = a?.first as? Double else {
+            guard let beats = oscDouble(a?.first) else {
                 self.posNote(why ?? "no answer"); self.blobPosition(nil, nil)
                 if self.lastWhy != why { self.lastWhy = why; self.say(why ?? "no answer") }
                 return
@@ -756,7 +758,7 @@ final class A1Engine: ObservableObject {
         }
         wire.ask("/live/song/get/current_song_time", wait: 2.5) { a, _ in
             guard let rr = self.restoring, rr.title == r.title else { return }
-            guard let now = a?.first as? Double else { DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.restoreTick() }; return }
+            guard let now = oscDouble(a?.first) else { DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.restoreTick() }; return }
             if abs(now - r.beats) < 0.01 {
                 self.restoring = nil; self.written[r.title] = now; self.lastBeats[r.title] = now
                 self.posState = (r.title, "came up with the insert point already at " + OSC.words(now, self.numerator), a1Time())
@@ -803,13 +805,13 @@ final class A1Engine: ObservableObject {
         }
         if !wire.isPending("/live/song/get/is_playing") {
             wire.ask("/live/song/get/is_playing", wait: 1.5) { a, _ in
-                if let p = a?.first as? Bool { self.setPlaying(p) } else if let p = a?.first as? Double { self.setPlaying(p != 0) }
+                if let p = a?.first as? Bool { self.setPlaying(p) } else if let p = oscDouble(a?.first) { self.setPlaying(p != 0) }
             }
         }
         if a1Time() - tempoAt > 10 {
             tempoAt = a1Time()
-            if !wire.isPending("/live/song/get/tempo") { wire.ask("/live/song/get/tempo", wait: 2) { a, _ in if let t = a?.first as? Double { self.tempo = t } } }
-            if !wire.isPending("/live/song/get/signature_numerator") { wire.ask("/live/song/get/signature_numerator", wait: 2) { a, _ in if let n = a?.first as? Double { self.numerator = n } } }
+            if !wire.isPending("/live/song/get/tempo") { wire.ask("/live/song/get/tempo", wait: 2) { a, _ in if let t = oscDouble(a?.first) { self.tempo = t } } }
+            if !wire.isPending("/live/song/get/signature_numerator") { wire.ask("/live/song/get/signature_numerator", wait: 2) { a, _ in if let n = oscDouble(a?.first) { self.numerator = n } } }
         }
         if a1Time() - cuesAt > 2 { askCues() }
         refreshMode()
@@ -955,9 +957,9 @@ final class A1Engine: ObservableObject {
         let q: [(String, (Double) -> Void)] = [
             ("/live/song/get/loop_start", { self.liveLoop.start = $0 }), ("/live/song/get/loop_length", { self.liveLoop.length = $0 }),
             ("/live/view/get/selected_track", { self.selectedTrack = Int($0) }), ("/live/song/get/num_tracks", { self.numTracks = Int($0) })]
-        for (addr, set) in q where !wire.isPending(addr) { wire.ask(addr, wait: 2) { a, _ in if let v = a?.first as? Double { set(v) } } }
+        for (addr, set) in q where !wire.isPending(addr) { wire.ask(addr, wait: 2) { a, _ in if let v = oscDouble(a?.first) { set(v) } } }
         if !wire.isPending("/live/song/get/loop") {
-            wire.ask("/live/song/get/loop", wait: 2) { a, _ in if let v = a?.first as? Bool { self.liveLoop.on = v } else if let v = a?.first as? Double { self.liveLoop.on = v != 0 } }
+            wire.ask("/live/song/get/loop", wait: 2) { a, _ in if let v = a?.first as? Bool { self.liveLoop.on = v } else if let v = oscDouble(a?.first) { self.liveLoop.on = v != 0 } }
         }
     }
     func tickMarker(_ key: String, _ on: Bool) {
@@ -975,7 +977,7 @@ final class A1Engine: ObservableObject {
         let t = knownTitle ?? ""
         if wire.isPending("/live/song/get/current_song_time") { fn(lastBeats[t], "the last number sampled"); return }
         wire.ask("/live/song/get/current_song_time", wait: 1.5) { a, _ in
-            if let b = a?.first as? Double { fn(b, "asked at the press") } else { fn(self.lastBeats[t], "the last number sampled") }
+            if let b = oscDouble(a?.first) { fn(b, "asked at the press") } else { fn(self.lastBeats[t], "the last number sampled") }
         }
     }
     func markLoop(_ which: String, at: Double? = nil, given: String? = nil) {
@@ -1053,10 +1055,20 @@ final class A1Engine: ObservableObject {
             self.say("track \(j + 1)\(of)"); self.loopNote = "the selection to track \(j + 1)\(of)"
         }
         if wire.isPending("/live/view/get/selected_track") { go(selectedTrack); return }
-        wire.ask("/live/view/get/selected_track", wait: 1.5) { a, _ in go((a?.first as? Double).map { Int($0) } ?? self.selectedTrack) }
+        wire.ask("/live/view/get/selected_track", wait: 1.5) { a, _ in go(oscDouble(a?.first).map { Int($0) } ?? self.selectedTrack) }
     }
     // Live has no command for moving a track: its header is dragged past its neighbour (the only mouse A1 ever moves)
+    // v37: the selected track is asked of Live at the press; until v36 the answer (an OSC integer) was never read, the cached
+    // index stayed nil and track 1 was dragged whatever was selected. Not known: nothing is moved.
     func moveTrack(down: Bool) {
+        if dragging { say("the track is still moving"); return }
+        wire.ask("/live/view/get/selected_track", wait: 1.0) { a, _ in
+            guard let i = oscDouble(a?.first).map({ Int($0) }) else { self.say("the track: Live did not say which track is selected; nothing moved"); return }
+            self.selectedTrack = i
+            self.moveTrackNow(down: down)
+        }
+    }
+    func moveTrackNow(down: Bool) {
         if dragging { say("the track is still moving"); return }
         guard liveFront() else { say("the track moves only while Live is in front"); loopNote = "the track was not moved: Live was not the front application"; return }
         let outlines = inWindowAll("AXOutline", "Track Headers")
@@ -1073,7 +1085,8 @@ final class A1Engine: ObservableObject {
         guard let rows = best else { say("the track: Live's Track Headers hold no rows"); return }
         var movable = rows.count
         if rows[movable - 1].name.hasPrefix("Main") { movable -= 1 }
-        let i = (selectedTrack ?? 0) + 1
+        guard let sel = selectedTrack else { say("the track: not known which is selected; nothing moved"); return }
+        let i = sel + 1
         guard i >= 1 && i <= movable else { say("no track to move"); return }
         let j = i + (down ? 1 : -1)
         guard j >= 1 && j <= movable else { say(down ? "the last track already" : "the first track already"); return }
